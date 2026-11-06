@@ -1,0 +1,100 @@
+# Briefhulp
+
+**Brief gekregen? Wij leggen het uit.**
+Maak een foto van een brief van de Belastingdienst, de gemeente, een verzekeraar of een incassobureau. Briefhulp legt in eenvoudig Nederlands (B1) uit wat er staat, wat u moet doen en voor wanneer.
+
+## Wat de app doet
+
+| | |
+|---|---|
+| 📷 **Foto of PDF** | Camera opent direct (achtercamera). Meerdere bladzijden (max. 6). Foto's worden op de telefoon verkleind. |
+| 🚦 **Urgentie** | Rood / oranje / groen, altijd met tekst en icoon (niet alleen kleur). |
+| ✅ **Actielijst** | Genummerde stappen die je kunt afvinken. |
+| 📅 **Deadline** | "Nog 9 dagen". Zet hem in je agenda (.ics met herinneringen 3 dagen en 1 dag van tevoren, werkt met iPhone, Android en Outlook) of in Google Agenda. |
+| 💶 **Betalen** | Bedrag, IBAN, naam en betalingskenmerk, met kopieerknoppen. |
+| ⚠️ **Nep-brief-check** | Waarschuwt bij signalen van oplichting en verwijst naar de Fraudehelpdesk. |
+| ⚖️ **Bezwaar** | Of en hoe je bezwaar kunt maken, en de termijn. |
+| 🔊 **Voorlezen** | Ingebouwde spraak van de telefoon. |
+| 🌍 **9 talen** | Nederlands, English, Türkçe, العربية (van rechts naar links), Polski, Українська, Tigrinya, Soomaali, Español. |
+| 💬 **Vervolgvragen** | "Wat als ik niet kan betalen?" |
+| 🤝 **Hulp** | Passende hulp: Juridisch Loket, BelastingTelefoon, Geldfit, schuldhulp van de gemeente. |
+| 📤 **Delen** | Stuur de uitleg naar familie of een hulpverlener (WhatsApp, e-mail), of druk hem af. |
+| 🔠 **Grote letters** | Eén knop. Lettertype Atkinson Hyperlegible (gemaakt voor mensen die slecht zien). Donkere modus. |
+
+## Privacy (by design)
+
+- Geen account, geen database, geen analytics, geen cookies.
+- Foto's gaan via HTTPS naar de server en direct door naar de Claude API. **Er wordt niets opgeslagen of gelogd.**
+- Een BSN wordt door het model gemaskeerd (`*****123`). Daarna maskeert de server nog een keer met de elfproef, als vangnet.
+- Anthropic traint niet op API-gegevens. Controleer de actuele bewaartermijn en eventuele *Zero Data Retention* in je contract met Anthropic: die is belangrijk voor een AVG-verwerkersovereenkomst en DPIA.
+- De browser bewaart alleen voorkeuren (grote letters, taal, uitleg gezien).
+
+## Starten
+
+```bash
+npm install
+```
+
+```bash
+cp .env.example .env.local   # vul ANTHROPIC_API_KEY in
+```
+
+```bash
+npm run dev
+```
+
+Open http://localhost:3000. Zonder API-sleutel draait de app lokaal in **demo-modus** (voorbeelduitleg).
+
+## Online zetten (aanbevolen: Vercel)
+
+1. Zet deze map in een GitHub-repository.
+2. Importeer de repository op vercel.com.
+3. Zet de omgevingsvariabele `ANTHROPIC_API_KEY`.
+4. Kies als functieregio **Frankfurt (fra1)** of een andere EU-regio.
+
+Let op: `maxDuration = 120` seconden. Op het gratis Vercel-plan is de limiet lager. Analyses duren meestal 15 tot 40 seconden.
+
+## Techniek
+
+- **Next.js 15** (App Router, TypeScript) en React 19. Geen UI-bibliotheek: kleine bundel (±119 kB), snel op oude telefoons.
+- **Claude API** (`claude-opus-5-5`, vision) met *structured outputs* (JSON-schema in `lib/schema.ts`), dus altijd geldig, voorspelbaar JSON.
+  - Systeemprompt in `lib/prompt.ts`: B1-regels, urgentieregels, kennis van Nederlandse brieven, nep-brief-signalen en hulporganisaties.
+  - Prompt caching op de systeemprompt.
+  - Automatische fallback (`fallbacks: "default"`) als een veiligheidsfilter onterecht weigert.
+- Rate limit per IP in het geheugen (`lib/server/ratelimit.ts`). **Voor productie: vervang dit door Redis/Upstash.**
+- Model wijzigen: `BRIEFHULP_MODEL=claude-sonnet-5-5` (sneller en goedkoper; test dan eerst de kwaliteit).
+
+### Bestanden
+
+```
+app/page.tsx                 startpagina
+app/privacy/page.tsx         privacyverklaring (B1)
+app/api/analyse/route.ts     foto's → uitleg (validatie, limieten, demo-modus)
+app/api/vraag/route.ts       vervolgvragen
+components/BriefApp.tsx      schermen: start → bladzijden → laden → uitleg
+components/Result.tsx        de uitleg (urgentie, stappen, deadline, betalen, …)
+lib/prompt.ts                instructies voor Claude
+lib/schema.ts / types.ts     het antwoordformaat
+lib/client/image.ts          foto's verkleinen en draaien (EXIF) op het toestel
+lib/client/calendar.ts       .ics-agenda en Google Agenda
+```
+
+## Voordat je live gaat met echte gebruikers
+
+1. **Testen met echte brieven** (geanonimiseerd), per soort afzender. Maak hiervan een evaluatieset.
+2. **Testen met de doelgroep**: Stichting Lezen & Schrijven, een Taalhuis, ouderenbond, VluchtelingenWerk.
+3. **AVG**: DPIA, verwerkersovereenkomst met Anthropic en je hostingpartij, en de privacyverklaring laten nakijken.
+4. **Kosten**: één analyse met Opus kost grofweg een paar cent. Zet een bestedingslimiet in de Anthropic Console.
+5. **Rate limiting** in Redis, en eventueel Cloudflare Turnstile tegen bots.
+
+## Roadmap (ideeën)
+
+- Native app met Capacitor (camera met automatische randdetectie, pushmeldingen voor deadlines).
+- Optioneel "Mijn brieven" (lokaal versleuteld op het toestel, alleen met toestemming).
+- Voorlezen met natuurlijke stemmen.
+- Brief beantwoorden: conceptbrief voor bezwaar of betalingsregeling.
+- Samenwerking met gemeenten en schuldhulp: doorverwijzen met één tik.
+
+---
+
+*Briefhulp geeft uitleg. Het is geen juridisch of financieel advies.*
