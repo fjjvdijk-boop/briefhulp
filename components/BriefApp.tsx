@@ -7,9 +7,12 @@ import { Result } from "./Result";
 import { FileProblem, preparePage, type PreparedPage } from "../lib/client/image";
 import { localToday } from "../lib/client/calendar";
 import { makeSample } from "../lib/sample";
+import { readLetter, type ReadProgress } from "../lib/client/ocr";
+import { explainLocally } from "../lib/client/rules";
 import { LANGUAGES, type Analysis, type ExplainLanguage } from "../lib/types";
 
 type Screen = "home" | "pages" | "loading" | "result" | "error";
+export type ResultMode = "lokaal" | "ai" | "demo" | "voorbeeld";
 
 const MAX_PAGES = 6;
 const PREF_KEY = "briefhulp:prefs";
@@ -45,8 +48,11 @@ export default function BriefApp() {
   const [busyFile, setBusyFile] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
-  const [isExample, setIsExample] = useState(false);
-  const [isDemo, setIsDemo] = useState(false);
+  const [mode, setMode] = useState<ResultMode>("lokaal");
+  const [letterText, setLetterText] = useState<string | null>(null);
+  const [aiAvailable, setAiAvailable] = useState(false);
+  const [progress, setProgress] = useState<ReadProgress | null>(null);
+  const [lastRun, setLastRun] = useState<"lokaal" | "ai">("lokaal");
   const [error, setError] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -55,6 +61,10 @@ export default function BriefApp() {
   useEffect(() => {
     setPrefs(loadPrefs());
     setReady(true);
+    fetch("/api/status")
+      .then((r) => r.json())
+      .then((j) => setAiAvailable(Boolean(j.ai)))
+      .catch(() => setAiAvailable(false));
   }, []);
 
   useEffect(() => {
@@ -111,8 +121,46 @@ export default function BriefApp() {
     }
   };
 
+  // GRATIS: lezen en uitleggen op de telefoon zelf. De brief verlaat het toestel niet.
+  const readFree = useCallback(async () => {
+    if (pages.length === 0) return;
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    setError(null);
+    setLastRun("lokaal");
+    setProgress({ stage: "laden", page: 1, pages: pages.length, progress: 0 });
+    go("loading");
+    try {
+      const { text, confidence } = await readLetter(pages, (p) => {
+        if (!ctrl.signal.aborted) setProgress(p);
+      });
+      if (ctrl.signal.aborted) return;
+      const { analysis: a, text: clean } = explainLocally(text, confidence, localToday());
+      setAnalysis(a);
+      setLetterText(clean);
+      setMode("lokaal");
+      setScreen("result");
+      window.scrollTo({ top: 0 });
+    } catch (e) {
+      if (ctrl.signal.aborted) return;
+      console.error(e);
+      setError(
+        navigator.onLine === false
+          ? "Het leesprogramma moet de eerste keer één keer worden gedownload. Zorg voor internet en probeer het opnieuw."
+          : "Het lezen van de brief lukte niet. Probeer het opnieuw, of maak een nieuwe foto.",
+      );
+      setScreen("error");
+    } finally {
+      setProgress(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pages]);
+
+  // BETAALD (optioneel): volledige uitleg met AI, alleen als de beheerder een API-sleutel heeft ingesteld.
   const analyse = useCallback(async () => {
     if (pages.length === 0) return;
+    setLastRun("ai");
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -134,8 +182,8 @@ export default function BriefApp() {
         throw new Error(json.error || "Er ging iets mis. Probeer het opnieuw.");
       }
       setAnalysis(json.analysis);
-      setIsDemo(Boolean(json.demo));
-      setIsExample(false);
+      setMode(json.demo ? "demo" : "ai");
+      setLetterText(null);
       setScreen("result");
       window.scrollTo({ top: 0 });
     } catch (e) {
@@ -152,8 +200,8 @@ export default function BriefApp() {
 
   const showExample = () => {
     setAnalysis(makeSample());
-    setIsExample(true);
-    setIsDemo(false);
+    setMode("voorbeeld");
+    setLetterText(null);
     go("result");
   };
 
@@ -166,8 +214,6 @@ export default function BriefApp() {
     setScreen("home");
     window.scrollTo({ top: 0 });
   };
-
-  const lang = LANGUAGES.find((l) => l.code === prefs.language) ?? LANGUAGES[0];
 
   return (
     <div className="app">
@@ -235,7 +281,9 @@ export default function BriefApp() {
 
             {notice && <p className="notice" role="alert">{notice}</p>}
 
-            <LanguagePicker value={prefs.language} onChange={(language) => updatePrefs({ language })} />
+            {aiAvailable && (
+              <LanguagePicker value={prefs.language} onChange={(language) => updatePrefs({ language })} />
+            )}
 
             <ul className="promise">
               <li>
@@ -252,7 +300,7 @@ export default function BriefApp() {
             <div className="privacy-mini">
               <Icon name="lock" size={22} />
               <p>
-                Geen account nodig. Wij bewaren uw brief niet.{" "}
+                Gratis en zonder account. Uw brief wordt op uw eigen telefoon gelezen en gaat nergens heen.{" "}
                 <Link href="/privacy">Lees hoe wij met uw gegevens omgaan</Link>.
               </p>
             </div>
@@ -299,7 +347,7 @@ export default function BriefApp() {
               </button>
             ) : (
               <>
-                <button className="btn btn-primary btn-huge" onClick={analyse}>
+                <button className="btn btn-primary btn-huge" onClick={readFree}>
                   <Icon name="check" size={36} />
                   <span>Leg mijn brief uit</span>
                 </button>
@@ -312,13 +360,18 @@ export default function BriefApp() {
               </>
             )}
             <p className="hint">
-              Uitleg in: <strong>{lang.label}</strong>
+              <Icon name="lock" size={18} /> Gratis. Uw brief wordt op uw telefoon gelezen.
             </p>
             <PhotoTips />
           </section>
         )}
 
-        {screen === "loading" && <Loading pages={pages.length} onCancel={() => window.history.back()} />}
+        {screen === "loading" &&
+          (progress ? (
+            <LocalLoading progress={progress} onCancel={() => window.history.back()} />
+          ) : (
+            <Loading pages={pages.length} onCancel={() => window.history.back()} />
+          ))}
 
         {screen === "error" && (
           <section className="screen center">
@@ -327,7 +380,7 @@ export default function BriefApp() {
             </div>
             <h1 className="title">Dat lukte niet</h1>
             <p className="lead">{error}</p>
-            <button className="btn btn-primary btn-huge" onClick={analyse}>
+            <button className="btn btn-primary btn-huge" onClick={lastRun === "ai" ? analyse : readFree}>
               <span>Probeer opnieuw</span>
             </button>
             <button className="btn btn-secondary" onClick={startOver}>
@@ -340,8 +393,9 @@ export default function BriefApp() {
           <Result
             analysis={analysis}
             language={prefs.language}
-            isExample={isExample}
-            isDemo={isDemo}
+            mode={mode}
+            letterText={letterText}
+            onUpgrade={aiAvailable && mode === "lokaal" && pages.length > 0 ? analyse : undefined}
             onNew={startOver}
             onRetakePhoto={() => {
               setPages([]);
@@ -447,6 +501,42 @@ function Loading({ pages, onCancel }: { pages: number; onCancel: () => void }) {
   );
 }
 
+function LocalLoading({ progress, onCancel }: { progress: ReadProgress; onCancel: () => void }) {
+  const pct = Math.round(((progress.page - 1 + progress.progress) / progress.pages) * 100);
+  const loadingProgram = progress.stage === "laden";
+  return (
+    <section className="screen center loading" aria-live="polite" aria-busy="true">
+      <div className="scan" aria-hidden="true">
+        <div className="scan-paper">
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
+        <div className="scan-line" />
+      </div>
+      <h1 className="title">{loadingProgram ? "Leesprogramma klaarzetten…" : "Uw brief wordt gelezen…"}</h1>
+      <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={loadingProgram ? undefined : pct}>
+        <div className="progress-bar" style={{ width: loadingProgram ? "100%" : `${Math.max(4, pct)}%` }} data-indeterminate={loadingProgram} />
+      </div>
+      <p className="hint">
+        {loadingProgram
+          ? "De eerste keer duurt dit iets langer (± 7 MB, één keer downloaden). Daarna gaat het sneller."
+          : progress.pages > 1
+            ? `Bladzijde ${progress.page} van ${progress.pages}`
+            : "Dit duurt meestal 5 tot 20 seconden."}
+      </p>
+      <p className="hint">
+        <Icon name="lock" size={18} /> Dit gebeurt op uw eigen telefoon.
+      </p>
+      <button className="btn btn-ghost" onClick={onCancel}>
+        Stoppen
+      </button>
+    </section>
+  );
+}
+
 function PrivacyIntro({ onOk }: { onOk: () => void }) {
   return (
     <div className="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
@@ -459,7 +549,7 @@ function PrivacyIntro({ onOk }: { onOk: () => void }) {
           </li>
           <li>
             <span className="how-num">2</span>
-            <span>Een computer (kunstmatige intelligentie) leest de brief en legt hem uit.</span>
+            <span>Uw telefoon leest de brief en zoekt wat belangrijk is.</span>
           </li>
           <li>
             <span className="how-num">3</span>
@@ -471,12 +561,9 @@ function PrivacyIntro({ onOk }: { onOk: () => void }) {
             <Icon name="lock" size={22} /> Uw gegevens
           </h3>
           <ul>
-            <li>Uw foto wordt beveiligd verstuurd om de brief uit te leggen.</li>
-            <li>Wij bewaren uw foto en de uitleg niet. U heeft geen account nodig.</li>
-            <li>
-              Voor de uitleg gebruiken wij Claude van het bedrijf Anthropic. Anthropic gebruikt uw brief niet om zijn computer
-              te trainen.
-            </li>
+            <li>Briefhulp is gratis. U heeft geen account nodig.</li>
+            <li>Uw brief wordt op uw eigen telefoon gelezen. De foto wordt nergens naartoe gestuurd.</li>
+            <li>Wij bewaren niets. Als u de app sluit, is alles weg.</li>
           </ul>
         </div>
         <p className="sheet-warn">

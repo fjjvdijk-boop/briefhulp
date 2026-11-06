@@ -26,14 +26,18 @@ const SPEECH_LANG: Record<ExplainLanguage, string> = {
 interface Props {
   analysis: Analysis;
   language: ExplainLanguage;
-  isExample: boolean;
-  isDemo: boolean;
+  mode: "lokaal" | "ai" | "demo" | "voorbeeld";
+  letterText: string | null;
+  onUpgrade?: () => void;
   onNew: () => void;
   onRetakePhoto: () => void;
 }
 
-export function Result({ analysis: a, language, isExample, isDemo, onNew, onRetakePhoto }: Props) {
-  const rtl = LANGUAGES.find((l) => l.code === language)?.rtl && !isExample;
+export function Result({ analysis: a, language, mode, letterText, onUpgrade, onNew, onRetakePhoto }: Props) {
+  const isExample = mode === "voorbeeld";
+  const isDemo = mode === "demo";
+  const isLocal = mode === "lokaal";
+  const rtl = LANGUAGES.find((l) => l.code === language)?.rtl && (mode === "ai" || mode === "demo");
   const [done, setDone] = useState<boolean[]>(() => a.actions.map(() => false));
   const u = URGENCY[a.urgency.level] ?? URGENCY.oranje;
   const days = a.deadline.date ? daysUntil(a.deadline.date) : null;
@@ -49,6 +53,16 @@ export function Result({ analysis: a, language, isExample, isDemo, onNew, onReta
       {(isExample || isDemo) && (
         <p className="demo-banner">
           {isExample ? "Dit is een voorbeeld met een verzonnen brief." : "Demo-modus: dit is een voorbeelduitleg, niet uw eigen brief."}
+        </p>
+      )}
+
+      {isLocal && (
+        <p className="local-banner">
+          <Icon name="lock" size={20} />
+          <span>
+            <strong>Snelle uitleg, gratis.</strong> Gemaakt op uw telefoon met vaste regels. Controleer bedragen en datums altijd op
+            de brief zelf.
+          </span>
         </p>
       )}
 
@@ -106,7 +120,7 @@ export function Result({ analysis: a, language, isExample, isDemo, onNew, onReta
         <p className="letter-type">{a.letter_type}</p>
       </header>
 
-      <ReadAloud analysis={a} lang={SPEECH_LANG[isExample ? "nl" : language]} />
+      <ReadAloud analysis={a} lang={SPEECH_LANG[mode === "ai" || mode === "demo" ? language : "nl"]} />
 
       <section className="card">
         <h2 className="card-title">In het kort</h2>
@@ -282,7 +296,26 @@ export function Result({ analysis: a, language, isExample, isDemo, onNew, onReta
         </details>
       )}
 
-      <AskQuestion analysis={a} language={language} />
+      {onUpgrade && (
+        <section className="card card-upgrade">
+          <h2 className="card-title">Wilt u een betere uitleg?</h2>
+          <p>Met de volledige uitleg leest slimme software (AI) de hele brief. U krijgt een uitleg in gewone taal, ook in andere talen, en u kunt vragen stellen.</p>
+          <p className="hint">Hiervoor wordt de foto beveiligd verstuurd naar Anthropic (Claude). Er wordt niets bewaard.</p>
+          <button className="btn btn-primary" onClick={onUpgrade}>
+            <span>Volledige uitleg</span>
+          </button>
+        </section>
+      )}
+
+      {letterText && (
+        <details className="card fold">
+          <summary className="card-title">Tekst van de brief</summary>
+          <p className="hint">Zo heeft uw telefoon de brief gelezen. Er kunnen leesfouten in zitten.</p>
+          <pre className="letter-text">{letterText}</pre>
+        </details>
+      )}
+
+      {!isLocal && <AskQuestion analysis={a} language={language} />}
 
       <section className="card card-help">
         <h2 className="card-title">
@@ -323,7 +356,7 @@ export function Result({ analysis: a, language, isExample, isDemo, onNew, onReta
       </div>
 
       <p className="disclaimer">
-        Deze uitleg is gemaakt door een computer en kan fouten bevatten. Het is geen juridisch of financieel advies. Bij twijfel
+        {isLocal ? "Deze uitleg is automatisch gemaakt met vaste regels en kan fouten of missende informatie bevatten." : "Deze uitleg is gemaakt door een computer en kan fouten bevatten."} Het is geen juridisch of financieel advies. Bij twijfel
         geldt altijd wat er in de brief zelf staat. Uw foto en deze uitleg worden niet door ons bewaard: als u op &quot;Nog een
         brief&quot; drukt of de app sluit, zijn ze weg.
       </p>

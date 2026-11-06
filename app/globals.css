@@ -1181,3 +1181,63 @@ main {
     background: #fff;
   }
 }
+
+/* ---------- Gratis modus ---------- */
+.local-banner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0;
+  background: var(--green-soft);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+}
+.local-banner svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--green);
+}
+.card-upgrade {
+  border: 2px dashed var(--primary);
+}
+.letter-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: inherit;
+  font-size: 0.85rem;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 8px 0 0;
+  max-height: 60vh;
+  overflow: auto;
+}
+.progress {
+  height: 14px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+  max-width: 360px;
+  width: 100%;
+  margin: 0 auto;
+}
+.progress-bar {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.progress-bar[data-indeterminate="true"] {
+  background: linear-gradient(90deg, var(--line), var(--primary), var(--line));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.hint svg {
+  vertical-align: -3px;
+}

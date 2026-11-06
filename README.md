@@ -3,6 +3,17 @@
 **Brief gekregen? Wij leggen het uit.**
 Maak een foto van een brief van de Belastingdienst, de gemeente, een verzekeraar of een incassobureau. Briefhulp legt in eenvoudig Nederlands (B1) uit wat er staat, wat u moet doen en voor wanneer.
 
+## Twee manieren van uitleggen
+
+| | **Gratis uitleg** (standaard) | **Volledige uitleg** (optioneel) |
+|---|---|---|
+| Kosten | € 0, altijd | ± 1–10 cent per brief (Claude API) |
+| Waar | Op de telefoon zelf (Tesseract + pdf.js) | Server → Claude API |
+| Privacy | Brief verlaat de telefoon niet | Beveiligd verstuurd, niets bewaard |
+| Wat | Afzender, soort brief, bedrag, deadline, IBAN, kenmerk, urgentie, stappen, moeilijke woorden, nep-check, agenda | Alles, plus uitleg in gewone taal, 9 talen, vragen stellen |
+
+Zonder `ANTHROPIC_API_KEY` draait de app **alleen gratis**: de knop voor de volledige uitleg verschijnt dan niet en er wordt nooit iets afgeschreven.
+
 ## Wat de app doet
 
 | | |

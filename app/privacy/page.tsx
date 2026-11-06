@@ -24,7 +24,14 @@ export default function Privacy() {
           <li>Druk op &quot;Nog een brief&quot; of sluit de app: dan is alles weg van uw scherm.</li>
         </ul>
 
-        <h2>Wat gebeurt er met uw foto?</h2>
+        <h2>Gratis uitleg: uw brief blijft op uw telefoon</h2>
+        <p>
+          Standaard leest Briefhulp de brief op uw eigen telefoon. De foto wordt dan nergens naartoe gestuurd, ook niet naar ons.
+          Alleen het leesprogramma wordt de eerste keer van onze website gedownload.
+        </p>
+
+        <h2>Volledige uitleg (alleen als u daarvoor kiest)</h2>
+        <p>Als deze knop er is en u erop drukt, gebeurt het volgende:</p>
         <ol>
           <li>Uw telefoon maakt de foto kleiner. Dat gaat sneller.</li>
           <li>De foto gaat beveiligd (versleuteld, via HTTPS) naar onze server.</li>
