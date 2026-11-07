@@ -177,6 +177,8 @@ export const tr: Lang = {
     copy: "Kopyala",
     copied: "Kopyalandı",
     copyLabel: (what) => `${what} kopyala`,
+    ibanChecked: "Hesap numarası doğrulandı",
+    sumChecked: "Tutarlar doğru toplanıyor",
     amounts: "Mektuptaki tutarlar",
     ifNothing: "Hiçbir şey yapmazsam ne olur?",
     objection: "Katılmıyor musunuz?",

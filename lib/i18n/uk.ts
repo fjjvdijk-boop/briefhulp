@@ -177,6 +177,8 @@ export const uk: Lang = {
     copy: "Копіювати",
     copied: "Скопійовано",
     copyLabel: (what) => `Копіювати: ${what}`,
+    ibanChecked: "Номер рахунку перевірено",
+    sumChecked: "Суми правильно додаються",
     amounts: "Суми в листі",
     ifNothing: "Що буде, якщо я нічого не зроблю?",
     objection: "Не згодні?",

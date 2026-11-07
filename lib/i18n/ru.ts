@@ -177,6 +177,8 @@ export const ru: Lang = {
     copy: "Копировать",
     copied: "Скопировано",
     copyLabel: (what) => `Копировать: ${what}`,
+    ibanChecked: "Номер счёта проверен",
+    sumChecked: "Суммы сходятся",
     amounts: "Суммы в письме",
     ifNothing: "Что будет, если я ничего не сделаю?",
     objection: "Не согласны?",

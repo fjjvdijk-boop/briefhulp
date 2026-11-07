@@ -177,6 +177,8 @@ export const ro: Lang = {
     copy: "Copiază",
     copied: "Copiat",
     copyLabel: (what) => `Copiază ${what}`,
+    ibanChecked: "Număr de cont verificat",
+    sumChecked: "Sumele se adună corect",
     amounts: "Sumele din scrisoare",
     ifNothing: "Ce se întâmplă dacă nu fac nimic?",
     objection: "Nu sunteți de acord?",

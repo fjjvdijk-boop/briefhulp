@@ -189,6 +189,8 @@ export const nl = {
     copy: "Kopieer",
     copied: "Gekopieerd",
     copyLabel: (what: string) => `${what} kopiëren`,
+    ibanChecked: "Rekeningnummer gecontroleerd",
+    sumChecked: "De bedragen tellen goed op",
     amounts: "Bedragen in de brief",
     ifNothing: "Wat gebeurt er als ik niets doe?",
     objection: "Bent u het er niet mee eens?",
@@ -236,6 +238,35 @@ export const nl = {
     calendarSoon3: "Over 3 dagen",
     calendarSoon1: "Morgen",
     actionNeeded: "Actie nodig",
+  },
+
+  reply: {
+    title: "Schrijf een brief terug",
+    intro: "Briefhulp maakt een brief voor u. U vult alleen uw naam en adres in.",
+    kinds: {
+      regeling: { title: "Betalingsregeling vragen", text: "U kunt niet alles in één keer betalen." },
+      uitstel: { title: "Uitstel vragen", text: "U heeft meer tijd nodig om te betalen." },
+      bezwaar: { title: "Bezwaar maken", text: "U bent het niet eens met het besluit." },
+      specificatie: { title: "Uitleg van de rekening vragen", text: "U wilt eerst weten waar het bedrag voor is." },
+    },
+    name: "Uw naam",
+    address: "Straat en huisnummer",
+    postcode: "Postcode en woonplaats",
+    phone: "Telefoonnummer (mag leeg blijven)",
+    monthly: "Hoeveel kunt u per maand betalen? (in euro)",
+    reason: "Wilt u iets uitleggen? (mag leeg blijven)",
+    reasonHint: "Bijvoorbeeld: ik heb weinig inkomen, of: ik heb al betaald op 3 oktober.",
+    remember: "Onthoud mijn naam en adres op deze telefoon",
+    preview: "Uw brief",
+    dutchNote: "De brief is in het Nederlands, omdat de organisatie Nederlands is.",
+    check: "Lees de brief goed na. Vul de stukjes tussen [haken] zelf in.",
+    copy: "Kopieer brief",
+    copied: "Gekopieerd",
+    share: "Delen",
+    email: "Mailen",
+    print: "Afdrukken",
+    sendTip: "Stuur de brief per post (het liefst aangetekend), per e-mail of via het contactformulier van de organisatie. Bewaar altijd een kopie.",
+    close: "Klaar",
   },
 
   // Teksten voor de gratis uitleg (vaste regels)
@@ -397,5 +428,5 @@ export const nl = {
 
 export type Dict = typeof nl;
 
-/** Andere talen: alles verplicht, behalve de lange informatiepagina's (die vallen terug op Engels). */
-export type Lang = Omit<Dict, "privacyPage" | "aboutPage"> & Partial<Pick<Dict, "privacyPage" | "aboutPage">>;
+/** Andere talen: alles verplicht, behalve de lange informatiepagina's en de antwoordbrief-schermen (die vallen terug op Engels). */
+export type Lang = Omit<Dict, "privacyPage" | "aboutPage" | "reply"> & Partial<Pick<Dict, "privacyPage" | "aboutPage" | "reply">>;

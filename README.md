@@ -5,7 +5,11 @@ Maak een foto van een brief van de Belastingdienst, de gemeente, een verzekeraar
 
 ## Wat is er nieuw in versie 1.0
 
-- **Slimme camera met kader (nieuw):** een A4-kader op het scherm met live hulp ("Leg de brief binnen het kader", "Kom iets dichterbij", "Ga iets verder weg", "Te donker", "Houd de telefoon stil"). Is alles goed, dan wordt het kader groen en maakt de app zelf de foto. Daarna: "Is alles goed te lezen?" → Gebruik / Opnieuw. Met lampknop, automatisch bijsnijden tot het kader, en terugval op de gewone camera-app. Alles op het toestel.
+- **Scheve foto's rechtzetten (nieuw):** de app zoekt de vier hoeken van het papier en trekt de brief recht, zoals een scanner.
+- **Zelfcontrole (nieuw):** IBAN-controlegetal (met herstel van leesfouten O/0, I/1, S/5, B/8) en controle of de bedragen optellen, met groene vinkjes.
+- **Brief terugschrijven (nieuw):** betalingsregeling, uitstel, bezwaar (pro forma) of specificatie vragen. Ingevuld met afzender, kenmerken, datum en bedrag; kopiëren, delen, mailen of afdrukken.
+- **Meer voorbeelden, mooie link-preview (og.png), strenge Content-Security-Policy, toegankelijkheid (axe: 0 problemen op alle schermen), automatische controle op GitHub (CI).**
+- **Slimme camera met kader:** een A4-kader op het scherm met live hulp ("Leg de brief binnen het kader", "Kom iets dichterbij", "Ga iets verder weg", "Te donker", "Houd de telefoon stil"). Is alles goed, dan wordt het kader groen en maakt de app zelf de foto. Daarna: "Is alles goed te lezen?" → Gebruik / Opnieuw. Met lampknop, automatisch bijsnijden tot het kader, en terugval op de gewone camera-app. Alles op het toestel.
 - **Opstarten:** eerst *Kies uw taal*, daarna een welkomstscherm (wat het is, gratis, privé, geen advies). Daarna het startscherm.
 - **Alle talen (nieuw):** 639 talen te kiezen (alle talen uit de Unicode-taaldatabase plus o.a. Dari, Tarifit en Assyrisch), te zoeken op eigen, Nederlandse of Engelse naam. Kan de telefoon zelf naar die taal vertalen (Chrome Translator API, op het toestel), dan vertaalt Briefhulp de hele app en de uitleg één keer en onthoudt dat — gratis en privé. Anders: Engels + tip voor de vertaalknop van de browser, en de AI-uitleg (als die aan staat) in die taal.
 - **13 talen volledig ingebouwd** (app én gratis uitleg, offline): Nederlands, English, العربية, Türkçe, Polski, Українська, Русский, Română, Español, Français, فارسی, Soomaali, Português. **± 180 andere talen** te kiezen: knoppen in het Engels, AI-uitleg (als die aan staat) in die taal. Arabisch en Farsi van rechts naar links.

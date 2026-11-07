@@ -155,15 +155,35 @@ function ibanValid(iban: string) {
   for (const ch of digits) rem = (rem * 10 + Number(ch)) % 97;
   return rem === 1;
 }
+// Typische leesfouten herstellen: letters op een cijferplek en andersom (NL: 2 letters, 2 cijfers, 4 letters, 10 cijfers).
+const TO_DIGIT: Record<string, string> = { O: "0", Q: "0", D: "0", I: "1", L: "1", Z: "2", S: "5", B: "8", G: "6", T: "7" };
+const TO_LETTER: Record<string, string> = { "0": "O", "1": "I", "5": "S", "8": "B", "2": "Z", "6": "G" };
+function fixIbanOcr(s: string) {
+  const chars = s.split("");
+  const isNl = s.startsWith("NL");
+  return chars
+    .map((ch, i) => {
+      if (i < 2) return ch;
+      const digitPlace = i < 4 || (isNl && i >= 8);
+      const letterPlace = isNl && i >= 4 && i < 8;
+      if (digitPlace) return TO_DIGIT[ch] ?? ch;
+      if (letterPlace) return TO_LETTER[ch] ?? ch;
+      return ch;
+    })
+    .join("");
+}
+
 function findIban(text: string) {
-  const re = /\b([A-Z]{2}\s{0,3}\d{2}(?:\s{0,3}[A-Z0-9]){10,30})/g;
+  const re = /\b([A-Z]{2}\s{0,3}[0-9OIL]{2}(?:\s{0,3}[A-Z0-9]){10,30})/g;
   const upper = text.toUpperCase().replace(/O(?=\d)/g, "0");
   for (const m of upper.matchAll(re)) {
     // probeer steeds kortere stukken (er kan tekst achter staan)
     const compact = m[1].replace(/\s/g, "");
     for (let len = Math.min(compact.length, 34); len >= 15; len--) {
       const cand = compact.slice(0, len);
-      if (ibanValid(cand)) return cand.replace(/(.{4})/g, "$1 ").trim();
+      for (const c of [cand, fixIbanOcr(cand)]) {
+        if (ibanValid(c)) return c.replace(/(.{4})/g, "$1 ").trim();
+      }
     }
   }
   return null;
@@ -511,7 +531,17 @@ export function explainLocally(rawText: string, confidence: number, today: strin
     .slice(0, 6)
     .map((a) => ({ amount: euro(a.value), description: a.label === "Bedrag" ? r.amount : a.label }));
 
+  // Zelfcontrole: tellen de losse bedragen op tot het totaal?
+  let sumOk: boolean | undefined;
+  if (total && TOTAL_WORDS.test(total.label)) {
+    const parts = amounts.filter((a) => a !== total && a.index < total.index && !TOTAL_WORDS.test(a.label));
+    const uniq = parts.filter((a, i, arr) => arr.findIndex((b) => b.value === a.value && b.label === a.label) === i);
+    if (uniq.length >= 2) sumOk = Math.abs(uniq.reduce((s2, a) => s2 + a.value, 0) - total.value) < 0.011;
+  }
+
   const analysis: Analysis = {
+    checks: { ibanValid: !!iban, sumOk },
+    letter_date: letterDate,
     is_letter: letters >= 60,
     readable,
     photo_tip: readable ? null : r.photoTip,

@@ -11,7 +11,7 @@ import { daysUntil, formatDateLong, localToday } from "../lib/client/calendar";
 import { loadDeadlines, removeDeadline, saveDeadline, type SavedDeadline } from "../lib/client/deadlines";
 import { readLetter, type ReadProgress } from "../lib/client/ocr";
 import { explainLocally } from "../lib/client/rules";
-import { sampleLetterText } from "../lib/sample";
+import { sampleLetterText, sampleLetters } from "../lib/sample";
 import { getDict, isBuiltIn, isRtl, locale as toLocale, type Dict, type LangInfo } from "../lib/i18n";
 import { dictFromTranslation, loadCachedTranslation, translateApp } from "../lib/i18n/autotranslate";
 import { I18nProvider, useI18n } from "../lib/i18n/context";
@@ -280,8 +280,9 @@ export default function BriefApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, lang]);
 
-  const showExample = () => {
-    const r = explainLocally(sampleLetterText(), 96, localToday(), t, loc);
+  const [examplesOpen, setExamplesOpen] = useState(false);
+  const showExample = (text: string = sampleLetterText()) => {
+    const r = explainLocally(text, 96, localToday(), t, loc);
     setAnalysis(r.analysis);
     setTypeKey(r.typeKey);
     setLetterText(r.text);
@@ -515,9 +516,19 @@ export default function BriefApp() {
                 </p>
               </div>
 
-              <button className="link-btn" onClick={showExample}>
+              <button className="link-btn" onClick={() => setExamplesOpen((o) => !o)} aria-expanded={examplesOpen}>
                 {t.home.example}
               </button>
+              {examplesOpen && (
+                <div className="examples">
+                  {sampleLetters().map((ex) => (
+                    <button key={ex.id} className="example-chip" onClick={() => showExample(ex.text)}>
+                      <span aria-hidden="true">{ex.emoji}</span>
+                      <span>{ex.id === "nep" ? t.result.scamTitle.split(":")[0] : t.r.types[ex.typeKey as keyof typeof t.r.types]}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 

@@ -25,6 +25,7 @@ for (const c of CASES) {
   if (e.estimate !== undefined) add("geschat", a.deadline.is_estimate === e.estimate, a.deadline.is_estimate, e.estimate);
   if (e.scam !== undefined) add("nep", a.scam_check.suspicious === e.scam, a.scam_check.suspicious, e.scam);
   if (e.objection !== undefined) add("bezwaar", a.objection.possible === e.objection, a.objection.possible, e.objection);
+  if (c.name.startsWith("Incasso: aanmaning")) add("bedragen-optellen", a.checks?.sumOk === true, a.checks?.sumOk, true);
   for (const [label, ok, got, want] of checks) {
     if (ok) passed++;
     else {

@@ -49,7 +49,7 @@ const EXTRA = [
   { c: "ber", en: "Berber (Tamazight)", n: "Tamaziɣt", nl: "Berbers (Tamazight)" },
   { c: "aii", en: "Assyrian Neo-Aramaic", n: "ܣܘܪܝܝܐ", nl: "Assyrisch", rtl: 1 },
 ];
-for (const x of EXTRA) if (!seen.has(x.c)) out.push(x);
+for (const x of EXTRA) if (!seen.has(x.c) && !out.some((o) => o.en === x.en)) out.push(x);
 out.sort((a, b) => a.en.localeCompare(b.en));
 const unique = [...new Map(out.map((x) => [x.c, x])).values()];
 out.length = 0;

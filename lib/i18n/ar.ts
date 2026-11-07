@@ -177,6 +177,8 @@ export const ar: Lang = {
     copy: "نسخ",
     copied: "تم النسخ",
     copyLabel: (what) => `نسخ ${what}`,
+    ibanChecked: "تم التحقق من رقم الحساب",
+    sumChecked: "المبالغ مجموعها صحيح",
     amounts: "المبالغ في الرسالة",
     ifNothing: "ماذا يحدث إذا لم أفعل شيئًا؟",
     objection: "هل لا توافق؟",

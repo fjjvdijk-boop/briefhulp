@@ -129,3 +129,49 @@ Kunt u niet in één keer betalen? Neem dan contact met ons op voor een betaling
 Met vriendelijke groet,
 Incassobureau Noordpunt`;
 }
+
+/** Meer verzonnen voorbeeldbrieven (fictieve personen en bedrijven), om de app te leren kennen. */
+export function sampleLetters(): { id: string; typeKey: string; emoji: string; text: string }[] {
+  const d = (n: number) => {
+    const x = new Date();
+    x.setDate(x.getDate() + n);
+    return x.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
+  };
+  return [
+    { id: "incasso", typeKey: "aanmaning", emoji: "💶", text: sampleLetterText() },
+    {
+      id: "teruggave",
+      typeKey: "voorlopigeAanslag",
+      emoji: "🏛️",
+      text: `Belastingdienst
+Datum: ${d(-3)}
+Voorlopige aanslag inkomstenbelasting
+Aanslagnummer: 1234.56.789.H.76
+U krijgt € 312 terug. Wij betalen dit bedrag in maandelijkse termijnen uit op uw rekening.
+U hoeft hiervoor niets te doen.
+Bent u het niet eens met deze aanslag? Dan kunt u binnen zes weken na de datum van deze aanslag bezwaar maken.`,
+    },
+    {
+      id: "toeslag",
+      typeKey: "terugvordering",
+      emoji: "🏠",
+      text: `Belastingdienst/Toeslagen
+Datum: ${d(-4)}
+Beschikking zorgtoeslag: terugvordering
+U heeft te veel zorgtoeslag gekregen. U moet € 450,00 terugbetalen.
+Betaal het bedrag uiterlijk ${d(60)} op NL86 INGB 0002 4455 88 onder vermelding van betalingskenmerk 0000 1111 2222 3333.
+Kunt u niet in één keer betalen? Dan kunt u een betalingsregeling aanvragen.
+Bent u het niet eens met dit besluit? Maak dan binnen zes weken bezwaar.`,
+    },
+    {
+      id: "nep",
+      typeKey: "laatste",
+      emoji: "⚠️",
+      text: `Belastingdienst
+Laatste waarschuwing
+U heeft een openstaande belastingschuld van € 1.250,00.
+Betaal binnen 24 uur op DE89 3704 0044 0532 0130 00, anders komt de politie langs voor een arrestatie.
+U kunt ook betalen met bitcoin.`,
+    },
+  ];
+}

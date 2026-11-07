@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "./Icon";
+import { ReplyCard } from "./ReplyLetter";
 import { daysUntil, downloadIcs, formatDateLong, googleCalendarUrl } from "../lib/client/calendar";
 import type { SavedDeadline } from "../lib/client/deadlines";
 import { useI18n } from "../lib/i18n/context";
@@ -212,7 +213,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
           </h2>
           {a.payment.amount && <p className="pay-amount">{a.payment.amount}</p>}
           <dl className="pay-grid">
-            {a.payment.iban && <CopyRow label={t.result.iban} value={a.payment.iban} iban />}
+            {a.payment.iban && <CopyRow label={t.result.iban} value={a.payment.iban} iban verified={a.checks?.ibanValid ? t.result.ibanChecked : undefined} />}
             {a.payment.to && <CopyRow label={t.result.to} value={a.payment.to} />}
             {a.payment.reference && <CopyRow label={t.result.reference} value={a.payment.reference} important />}
           </dl>
@@ -223,6 +224,11 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
       {a.amounts.length > 0 && (
         <section className="card">
           <h2 className="card-title">{t.result.amounts}</h2>
+          {a.checks?.sumOk && (
+            <p className="verified">
+              <Icon name="check" size={18} /> {t.result.sumChecked}
+            </p>
+          )}
           <ul className="amounts">
             {a.amounts.map((x, i) => (
               <li key={i}>
@@ -305,6 +311,8 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
           </dl>
         </details>
       )}
+
+      {a.readable && <ReplyCard analysis={a} />}
 
       {onUpgrade && (
         <section className="card card-upgrade">
@@ -403,7 +411,7 @@ function HelpContact({ text }: { text: string }) {
   return <span className="help-contact">{text}</span>;
 }
 
-function CopyRow({ label, value, important, iban }: { label: string; value: string; important?: boolean; iban?: boolean }) {
+function CopyRow({ label, value, important, iban, verified }: { label: string; value: string; important?: boolean; iban?: boolean; verified?: string }) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const copy = async () => {
@@ -417,7 +425,14 @@ function CopyRow({ label, value, important, iban }: { label: string; value: stri
   };
   return (
     <div className={`copy-row ${important ? "important" : ""}`}>
-      <dt>{label}</dt>
+      <dt>
+        {label}
+        {verified && (
+          <span className="verified inline">
+            <Icon name="check" size={16} /> {verified}
+          </span>
+        )}
+      </dt>
       <dd>
         <span className="mono" dir="ltr">
           {value}

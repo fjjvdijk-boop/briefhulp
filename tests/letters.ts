@@ -164,3 +164,13 @@ U krijgt vanaf 1 december 2026 een WW-uitkering. U hoeft hiervoor niets te doen.
     expect: { urgency: "groen", sender: "uwv", pay: false },
   },
 ];
+
+// Extra: leesfouten in het IBAN (O i.p.v. 0, I i.p.v. 1) moeten via het controlegetal hersteld worden.
+CASES.push({
+  name: "IBAN met leesfouten (O/0, I/1) wordt hersteld",
+  text: `Incassobureau Noordpunt B.V.
+Datum: 2 november 2026
+Totaal te betalen € 192,40
+Betaal uiterlijk 16 november 2026 op NL9I ABNA O4I7 1643 OO t.n.v. Incassobureau Noordpunt.`,
+  expect: { pay: true, iban: "NL91 ABNA 0417 1643 00" },
+});

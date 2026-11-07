@@ -177,6 +177,8 @@ export const fr: Lang = {
     copy: "Copier",
     copied: "Copié",
     copyLabel: (what) => `Copier ${what}`,
+    ibanChecked: "Numéro de compte vérifié",
+    sumChecked: "Les montants s'additionnent correctement",
     amounts: "Montants dans le courrier",
     ifNothing: "Que se passe-t-il si je ne fais rien ?",
     objection: "Vous n'êtes pas d'accord ?",

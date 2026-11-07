@@ -61,6 +61,10 @@ export interface Analysis {
   difficult_words: { word: string; meaning: string }[];
   scam_check: { suspicious: boolean; signals: string[] };
   help: { name: string; why: string; contact: string | null }[];
+  /** Datum van de brief (YYYY-MM-DD), als bekend. */
+  letter_date?: string | null;
+  /** Zelfcontrole van de gratis uitleg (optioneel). */
+  checks?: { ibanValid?: boolean; sumOk?: boolean };
 }
 
 export type ExplainLanguage = string; // ISO 639-code, bijv. "nl", "ar", "ti"

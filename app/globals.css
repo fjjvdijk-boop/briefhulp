@@ -1960,3 +1960,178 @@ main {
 .auto-card {
   border: 2px dashed var(--primary);
 }
+
+/* ---------- Zelfcontrole ---------- */
+.verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--green);
+  font-weight: 700;
+  font-size: 0.8rem;
+  margin: 0 0 6px;
+}
+.verified.inline {
+  margin: 0 0 0 8px;
+  background: var(--green-soft);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+/* ---------- Brief terugschrijven ---------- */
+.reply-kinds {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+.reply-kind {
+  text-align: start;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: var(--bg);
+  padding: 12px 14px;
+  min-height: 64px;
+  display: grid;
+  gap: 2px;
+  cursor: pointer;
+}
+.reply-kind:hover {
+  border-color: var(--primary);
+}
+.reply-kind strong {
+  color: var(--primary);
+}
+.reply-kind span {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.reply-sheet {
+  max-height: 96dvh;
+}
+.reply-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.reply-head h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+.cam-btn.dark {
+  background: var(--bg);
+  color: var(--ink);
+  flex: none;
+}
+.form-grid {
+  display: grid;
+  gap: 10px;
+}
+.field {
+  display: grid;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.field input,
+.field textarea {
+  font: inherit;
+  font-weight: 400;
+  min-height: 52px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--bg);
+  color: var(--ink);
+}
+.field input:focus,
+.field textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+.check-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 48px;
+  font-size: 0.9rem;
+}
+.check-row input {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--primary);
+}
+.reply-preview-title {
+  margin: 8px 0 0;
+}
+.reply-letter {
+  white-space: pre-wrap;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  background: #fff;
+  color: #111;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px;
+  margin: 0;
+  box-shadow: var(--shadow);
+}
+.reply-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+@media print {
+  body.print-reply .app > *:not(main),
+  body.print-reply main > *,
+  body.print-reply .result > *:not(.card-reply),
+  body.print-reply .card-reply > *:not(.sheet-backdrop),
+  body.print-reply .reply-sheet > *:not(.reply-letter) {
+    display: none !important;
+  }
+  body.print-reply main > .result {
+    display: block !important;
+  }
+  body.print-reply .card-reply,
+  body.print-reply .sheet-backdrop,
+  body.print-reply .reply-sheet {
+    display: block !important;
+    position: static !important;
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    animation: none !important;
+  }
+  body.print-reply .reply-letter {
+    border: 0;
+    box-shadow: none;
+    font-size: 12pt;
+    padding: 0;
+  }
+}
+
+/* ---------- Voorbeelden ---------- */
+.examples {
+  display: grid;
+  gap: 8px;
+}
+.example-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: start;
+  min-height: 56px;
+  padding: 10px 14px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  cursor: pointer;
+  font-weight: 700;
+}
+.example-chip span:first-child {
+  font-size: 1.4rem;
+}

@@ -177,6 +177,8 @@ export const so: Lang = {
     copy: "Koobiyee",
     copied: "Waa la koobiyeeyay",
     copyLabel: (what) => `Koobiyee ${what}`,
+    ibanChecked: "Lambarka akoonka waa la hubiyay",
+    sumChecked: "Lacagaha si sax ah ayay isugu darmaan",
     amounts: "Lacagaha warqadda ku jira",
     ifNothing: "Maxaa dhacaya haddii aanan waxba samayn?",
     objection: "Ma diidan tahay?",

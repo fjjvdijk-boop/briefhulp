@@ -177,6 +177,8 @@ export const fa: Lang = {
     copy: "کپی",
     copied: "کپی شد",
     copyLabel: (what) => `کپی ${what}`,
+    ibanChecked: "شماره‌ی حساب بررسی شد",
+    sumChecked: "جمع مبلغ‌ها درست است",
     amounts: "مبلغ‌های نامه",
     ifNothing: "اگر کاری نکنم چه می‌شود؟",
     objection: "موافق نیستید؟",

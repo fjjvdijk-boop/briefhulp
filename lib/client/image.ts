@@ -1,4 +1,5 @@
 import type { UploadPage } from "../types";
+import { straightenCanvas } from "./straighten";
 
 const MAX_EDGE = 2000; // genoeg om kleine letters te lezen, klein genoeg om snel te versturen
 const PDF_MAX_BYTES = 3 * 1024 * 1024;
@@ -12,6 +13,7 @@ export interface PhotoQuality {
 export interface PreparedPage extends UploadPage {
   id: string;
   quality?: PhotoQuality;
+  straightened?: boolean;
   preview: string; // data-URL voor de miniatuur ("" bij PDF)
   name: string;
 }
@@ -117,8 +119,20 @@ export async function preparePage(file: File): Promise<PreparedPage> {
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(img as CanvasImageSource, 0, 0, canvas.width, canvas.height);
-  const quality = checkQuality(canvas, w, h);
   if ("close" in img) img.close();
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
-  return { id: newId(), mediaType: "image/jpeg", data: dataUrl.split(",")[1], preview: dataUrl, name: file.name, quality };
+  // Scheve brief rechttrekken (zoals een scanner). Lukt dat niet, dan de foto zoals hij is.
+  let out = canvas;
+  let straightened = false;
+  try {
+    const s = straightenCanvas(canvas);
+    if (s) {
+      out = s;
+      straightened = true;
+    }
+  } catch {
+    /* gewoon de originele foto gebruiken */
+  }
+  const quality = checkQuality(out, straightened ? Math.max(w, h) : w, straightened ? Math.max(w, h) : h);
+  const dataUrl = out.toDataURL("image/jpeg", 0.88);
+  return { id: newId(), mediaType: "image/jpeg", data: dataUrl.split(",")[1], preview: dataUrl, name: file.name, quality, straightened };
 }
