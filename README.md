@@ -5,6 +5,7 @@ Maak een foto van een brief van de Belastingdienst, de gemeente, een verzekeraar
 
 ## Wat is er nieuw in versie 1.0
 
+- **Slimme camera met kader (nieuw):** een A4-kader op het scherm met live hulp ("Leg de brief binnen het kader", "Kom iets dichterbij", "Ga iets verder weg", "Te donker", "Houd de telefoon stil"). Is alles goed, dan wordt het kader groen en maakt de app zelf de foto. Daarna: "Is alles goed te lezen?" → Gebruik / Opnieuw. Met lampknop, automatisch bijsnijden tot het kader, en terugval op de gewone camera-app. Alles op het toestel.
 - **Opstarten:** eerst *Kies uw taal*, daarna een welkomstscherm (wat het is, gratis, privé, geen advies). Daarna het startscherm.
 - **13 talen volledig ingebouwd** (app én gratis uitleg, offline): Nederlands, English, العربية, Türkçe, Polski, Українська, Русский, Română, Español, Français, فارسی, Soomaali, Português. **± 180 andere talen** te kiezen: knoppen in het Engels, AI-uitleg (als die aan staat) in die taal. Arabisch en Farsi van rechts naar links.
 - **Betere herkenning:** foto wordt automatisch verbeterd (grijs, contrast, vergroten) en de app waarschuwt bij een donkere, wazige of kleine foto, met een knop "Nieuwe foto".

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Icon } from "./Icon";
 import { Result } from "./Result";
 import { LanguageScreen } from "./LanguageScreen";
+import { CameraScreen } from "./CameraScreen";
 import { FileProblem, preparePage, type PreparedPage } from "../lib/client/image";
 import { daysUntil, formatDateLong, localToday } from "../lib/client/calendar";
 import { loadDeadlines, removeDeadline, saveDeadline, type SavedDeadline } from "../lib/client/deadlines";
@@ -67,6 +68,8 @@ export default function BriefApp() {
   const [deadlines, setDeadlines] = useState<SavedDeadline[]>([]);
   const [installEvent, setInstallEvent] = useState<InstallPromptEvent | null>(null);
   const [isIos, setIsIos] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const cameraOpenRef = useRef(false);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<string | null>(null);
@@ -128,6 +131,11 @@ export default function BriefApp() {
   // Telefoon-terugknop: ga een scherm terug in plaats van de app te verlaten.
   useEffect(() => {
     const onPop = () => {
+      if (cameraOpenRef.current) {
+        cameraOpenRef.current = false;
+        setCameraOpen(false);
+        return;
+      }
       abortRef.current?.abort();
       setScreen((s) => {
         if (s === "language" && !prefs.lang) return s;
@@ -146,7 +154,7 @@ export default function BriefApp() {
   };
 
   // ---------- Foto's ----------
-  const addFiles = async (files: FileList | null) => {
+  const addFiles = async (files: FileList | File[] | null) => {
     if (!files || files.length === 0) return;
     setNotice(null);
     setBusyFile(true);
@@ -175,9 +183,23 @@ export default function BriefApp() {
     }
   };
 
+  /** Eigen camera met kader en hulp; anders de gewone camera-app. */
+  const openCamera = () => {
+    if (typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function") {
+      window.history.pushState({ camera: true }, "");
+      cameraOpenRef.current = true;
+      setCameraOpen(true);
+    } else {
+      cameraRef.current?.click();
+    }
+  };
+  const closeCamera = () => {
+    if (cameraOpenRef.current) window.history.back();
+  };
+
   const retakePage = (id: string) => {
     replaceRef.current = id;
-    cameraRef.current?.click();
+    openCamera();
   };
 
   // ---------- GRATIS: lezen en uitleggen op de telefoon zelf ----------
@@ -328,6 +350,23 @@ export default function BriefApp() {
           </div>
         </header>
 
+        {cameraOpen && (
+          <CameraScreen
+            onCapture={(file) => {
+              closeCamera();
+              addFiles([file]);
+            }}
+            onFallback={() => {
+              closeCamera();
+              setTimeout(() => cameraRef.current?.click(), 50);
+            }}
+            onClose={() => {
+              replaceRef.current = null;
+              closeCamera();
+            }}
+          />
+        )}
+
         <main id="main">
           {screen === "language" && <LanguageScreen current={prefs.lang} aiAvailable={aiAvailable} onChoose={chooseLanguage} />}
 
@@ -350,7 +389,7 @@ export default function BriefApp() {
               </h1>
               <p className="hero-sub">{t.home.sub}</p>
 
-              <button className="btn btn-primary btn-huge" onClick={() => cameraRef.current?.click()} disabled={busyFile}>
+              <button className="btn btn-primary btn-huge" onClick={openCamera} disabled={busyFile}>
                 <Icon name="camera" size={40} />
                 <span>{busyFile ? t.home.wait : t.home.takePhoto}</span>
               </button>
@@ -467,7 +506,7 @@ export default function BriefApp() {
               )}
 
               {pages.length === 0 ? (
-                <button className="btn btn-primary btn-huge" onClick={() => cameraRef.current?.click()}>
+                <button className="btn btn-primary btn-huge" onClick={openCamera}>
                   <Icon name="camera" size={40} />
                   <span>{t.home.takePhoto}</span>
                 </button>
@@ -478,7 +517,7 @@ export default function BriefApp() {
                     <span>{t.pages.explain}</span>
                   </button>
                   {pages.length < MAX_PAGES && (
-                    <button className="btn btn-secondary" onClick={() => cameraRef.current?.click()} disabled={busyFile}>
+                    <button className="btn btn-secondary" onClick={openCamera} disabled={busyFile}>
                       <Icon name="plus" />
                       <span>{busyFile ? t.home.wait : t.pages.add}</span>
                     </button>
@@ -536,7 +575,7 @@ export default function BriefApp() {
                 setPages([]);
                 setAnalysis(null);
                 setScreen("home");
-                setTimeout(() => cameraRef.current?.click(), 50);
+                setTimeout(openCamera, 50);
               }}
             />
           )}
