@@ -5,7 +5,12 @@ Maak een foto van een brief van de Belastingdienst, de gemeente, een verzekeraar
 
 ## Wat is er nieuw in versie 1.0
 
-- **Scheve foto's rechtzetten (nieuw):** de app zoekt de vier hoeken van het papier en trekt de brief recht, zoals een scanner.
+- **Uitleg in tabbladen (nieuw):** Overzicht · Betalen · Niet eens? · Hulp — overzichtelijk, ook bij lange brieven.
+- **"Ik ben het er niet mee eens" (nieuw):** stappenplan per soort brief (overheid/belasting: bezwaar → ingebrekestelling → beroep → klacht; CJIB: officier van justitie → kantonrechter; incasso: specificatie → betwisten; verzekeraar: klacht → Kifid/SKGZ; huur: verhuurder → Huurcommissie), met uitgerekende datum en knop "Schrijf deze brief".
+- **11 antwoordbrieven:** betalingsregeling, uitstel, kwijtschelding, bezwaar, beroepschrift, beroep verkeersboete, betwisting, specificatie, ingebrekestelling, klacht en AVG-inzageverzoek.
+- **Kennisbank "Uw rechten" (nieuw, /rechten):** 19 onderwerpen (bezwaar, beroep, dwangsom, incassokosten, incassoregister, verjaring, CJIB, betalingsregeling, beslagvrije voet, schuldhulp, toeslagen, kwijtschelding, huur, zorgpremie, energie, Kifid, ombudsman, rechtshulp, AVG) met bronnen en controledatum (`lib/legal/topics.ts`). **Laat deze teksten nakijken door een jurist.**
+- **Veilig direct betalen (nieuw):** betaallinks en QR-codes op de brief worden herkend (op het toestel) en gecontroleerd tegen de afzender (groen/rood); officiële website bij CJIB, Belastingdienst e.a.; EPC-betaal-QR (werkt in sommige bank-apps). Nooit betaalhulp bij een vermoedelijke nepbrief.
+- **Scheve foto's rechtzetten:** de app zoekt de vier hoeken van het papier en trekt de brief recht, zoals een scanner.
 - **Zelfcontrole (nieuw):** IBAN-controlegetal (met herstel van leesfouten O/0, I/1, S/5, B/8) en controle of de bedragen optellen, met groene vinkjes.
 - **Brief terugschrijven (nieuw):** betalingsregeling, uitstel, bezwaar (pro forma) of specificatie vragen. Ingevuld met afzender, kenmerken, datum en bedrag; kopiëren, delen, mailen of afdrukken.
 - **Meer voorbeelden, mooie link-preview (og.png), strenge Content-Security-Policy, toegankelijkheid (axe: 0 problemen op alle schermen), automatische controle op GitHub (CI).**

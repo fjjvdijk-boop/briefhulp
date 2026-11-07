@@ -64,6 +64,7 @@ export default function BriefApp() {
   const [mode, setMode] = useState<ResultMode>("lokaal");
   const [typeKey, setTypeKey] = useState<string>("");
   const [letterText, setLetterText] = useState<string | null>(null);
+  const [qrCodes, setQrCodes] = useState<string[]>([]);
   const [aiAvailable, setAiAvailable] = useState(false);
   const [progress, setProgress] = useState<ReadProgress | null>(null);
   const [lastRun, setLastRun] = useState<"lokaal" | "ai">("lokaal");
@@ -223,7 +224,7 @@ export default function BriefApp() {
     setProgress({ stage: "laden", page: 1, pages: pages.length, progress: 0 });
     go("loading");
     try {
-      const { text, confidence } = await readLetter(pages, (p) => {
+      const { text, confidence, qr } = await readLetter(pages, (p) => {
         if (!ctrl.signal.aborted) setProgress(p);
       });
       if (ctrl.signal.aborted) return;
@@ -231,6 +232,7 @@ export default function BriefApp() {
       setAnalysis(r.analysis);
       setTypeKey(r.typeKey);
       setLetterText(r.text);
+      setQrCodes(qr);
       setMode("lokaal");
       setScreen("result");
       window.scrollTo({ top: 0 });
@@ -646,6 +648,7 @@ export default function BriefApp() {
               mode={mode}
               typeKey={typeKey}
               letterText={letterText}
+              qrCodes={mode === "voorbeeld" ? [] : qrCodes}
               onUpgrade={aiAvailable && mode === "lokaal" && pages.length > 0 ? analyseAI : undefined}
               onNew={startOver}
               onSaveDeadline={(d) => setDeadlines(saveDeadline(d))}
@@ -667,6 +670,8 @@ export default function BriefApp() {
             </p>
             <p className="footer-links">
               <Link href="/privacy">{t.app.privacy}</Link>
+              <span aria-hidden="true">·</span>
+              <Link href="/rechten">{t.legal.pageTitle}</Link>
               <span aria-hidden="true">·</span>
               <Link href="/over">{t.app.about}</Link>
               <span aria-hidden="true">·</span>

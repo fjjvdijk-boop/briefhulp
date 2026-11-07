@@ -227,6 +227,8 @@ export const pl: Lang = {
     calendarSoon1: "Jutro",
     actionNeeded: "Trzeba coś zrobić",
   },
+  tabs: { overview: "Przegląd", pay: "Płatność", disagree: "Nie zgadzasz się?", help: "Pomoc" },
+
   r: {
     unknownSender: "Nieznany nadawca",
     amount: "Kwota",

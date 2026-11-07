@@ -227,6 +227,8 @@ export const uk: Lang = {
     calendarSoon1: "Завтра",
     actionNeeded: "Потрібна дія",
   },
+  tabs: { overview: "Огляд", pay: "Оплата", disagree: "Не згодні?", help: "Допомога" },
+
   r: {
     unknownSender: "Невідомий відправник",
     amount: "Сума",

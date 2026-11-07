@@ -227,6 +227,8 @@ export const tr: Lang = {
     calendarSoon1: "Yarın",
     actionNeeded: "Bir şey yapmanız gerekiyor",
   },
+  tabs: { overview: "Özet", pay: "Ödeme", disagree: "Katılmıyor musunuz?", help: "Yardım" },
+
   r: {
     unknownSender: "Bilinmeyen gönderen",
     amount: "Tutar",

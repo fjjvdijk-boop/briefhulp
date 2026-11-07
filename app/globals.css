@@ -2135,3 +2135,226 @@ main {
 .example-chip span:first-child {
   font-size: 1.4rem;
 }
+
+/* ---------- Tabbladen in de uitleg ---------- */
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  padding: 6px;
+  margin: 0 -4px;
+  background: var(--bg);
+  border-radius: 18px;
+  box-shadow: 0 6px 14px -10px rgba(20, 33, 61, 0.4);
+}
+.tab {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-height: 60px;
+  padding: 6px 4px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 0.72rem;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+}
+.tab.on {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-ink);
+}
+.tabpanel {
+  display: grid;
+  gap: 16px;
+  scroll-margin-top: 90px;
+}
+
+/* ---------- Stappenplan "niet eens" ---------- */
+.route-steps {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+.route-steps li {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 10px;
+  position: relative;
+  padding-bottom: 16px;
+}
+.route-steps li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 11px;
+  top: 22px;
+  bottom: 0;
+  width: 3px;
+  background: var(--line);
+  border-radius: 3px;
+}
+.route-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 4px solid var(--primary);
+  background: var(--surface);
+  margin-top: 2px;
+}
+.route-steps h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.route-steps p {
+  margin: 4px 0;
+}
+.route-deadline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-weight: 700;
+  color: var(--primary);
+}
+.route-deadline.soon {
+  color: var(--red);
+}
+.small-btn.primary {
+  border-color: var(--primary);
+  color: var(--primary);
+  margin-top: 4px;
+}
+
+/* ---------- Rechten (kennisbank) ---------- */
+.topics {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.topic {
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+}
+.topic summary {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+.topic summary::-webkit-details-marker {
+  display: none;
+}
+.topic summary::after {
+  content: "+";
+  font-size: 1.4rem;
+  color: var(--primary);
+}
+.topic[open] summary::after {
+  content: "−";
+}
+.topic-body {
+  padding: 0 14px 12px;
+}
+.topic-body p {
+  margin: 0 0 8px;
+}
+.topic-body h4 {
+  margin: 8px 0 4px;
+}
+.topic-where {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+  display: grid;
+  gap: 6px;
+}
+.topic-link {
+  display: block;
+  font-size: 0.85rem;
+  min-height: 32px;
+}
+.topic-sources {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.topic-group h2 {
+  font-size: 1.2rem;
+  margin: 16px 0 4px;
+}
+.legal-note {
+  border-inline-start: 4px solid var(--orange);
+  padding-inline-start: 10px;
+}
+
+/* ---------- Direct betalen ---------- */
+.card-paynow {
+  border: 2px solid var(--green);
+}
+.pay-link {
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 10px;
+  display: grid;
+  gap: 4px;
+}
+.pay-link p {
+  margin: 0;
+}
+.pay-link.status-afzender,
+.pay-link.status-bank {
+  background: var(--green-soft);
+}
+.pay-link.status-onbekend {
+  background: var(--red-soft);
+  border: 2px solid var(--red);
+}
+.pay-link-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pay-link.status-onbekend .pay-link-head svg {
+  color: var(--red);
+}
+.pay-link-host {
+  font-size: 1rem;
+}
+.pay-official,
+.pay-qr {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.pay-official p,
+.pay-qr h3 {
+  margin: 0;
+}
+.qr-box {
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px;
+  width: fit-content;
+  margin: 0 auto;
+}
+.qr-box svg {
+  display: block;
+  width: 240px;
+  height: 240px;
+}

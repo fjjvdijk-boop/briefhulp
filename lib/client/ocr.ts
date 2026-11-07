@@ -141,9 +141,37 @@ async function readPdf(page: PreparedPage, report: (p: number, status: string) =
   return { text: texts.join("\n\n"), confidence };
 }
 
-/** Leest alle bladzijden. Geeft de tekst en een betrouwbaarheid (0-100). */
+/** Zoekt QR-codes in een foto (bijvoorbeeld een iDEAL-betaal-QR op de brief). Op het toestel. */
+export async function findQrCodes(src: string): Promise<string[]> {
+  try {
+    const { default: jsQR } = await import("jsqr");
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const found: string[] = [];
+    // Op twee formaten proberen: QR-codes op brieven zijn vaak klein.
+    for (const max of [1600, 900]) {
+      const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * scale);
+      c.height = Math.round(img.naturalHeight * scale);
+      const ctx = c.getContext("2d", { willReadFrequently: true })!;
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      const d = ctx.getImageData(0, 0, c.width, c.height);
+      const r = jsQR(d.data, d.width, d.height, { inversionAttempts: "dontInvert" });
+      if (r?.data && !found.includes(r.data)) found.push(r.data);
+      if (found.length) break;
+    }
+    return found;
+  } catch {
+    return [];
+  }
+}
+
+/** Leest alle bladzijden. Geeft de tekst, een betrouwbaarheid (0-100) en gevonden QR-codes. */
 export async function readLetter(pages: PreparedPage[], onProgress: (p: ReadProgress) => void) {
   const texts: string[] = [];
+  const qr: string[] = [];
   let confidence = 100;
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
@@ -154,9 +182,10 @@ export async function readLetter(pages: PreparedPage[], onProgress: (p: ReadProg
         pages: pages.length,
         progress: Math.max(0, Math.min(1, p)),
       });
+    if (page.preview) qr.push(...(await findQrCodes(page.preview)));
     const r = page.mediaType === "application/pdf" ? await readPdf(page, report) : await ocrImage(page.preview, report);
     texts.push(r.text);
     confidence = Math.min(confidence, r.confidence);
   }
-  return { text: texts.join("\n\n--- volgende bladzijde ---\n\n"), confidence };
+  return { text: texts.join("\n\n--- volgende bladzijde ---\n\n"), confidence, qr };
 }

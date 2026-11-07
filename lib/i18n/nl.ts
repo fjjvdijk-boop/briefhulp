@@ -248,6 +248,13 @@ export const nl = {
       uitstel: { title: "Uitstel vragen", text: "U heeft meer tijd nodig om te betalen." },
       bezwaar: { title: "Bezwaar maken", text: "U bent het niet eens met het besluit." },
       specificatie: { title: "Uitleg van de rekening vragen", text: "U wilt eerst weten waar het bedrag voor is." },
+      beroep: { title: "In beroep gaan bij de rechter", text: "Uw bezwaar is afgewezen en u bent het nog steeds niet eens." },
+      cjibBeroep: { title: "Beroep tegen verkeersboete", text: "Naar de officier van justitie. Gratis, binnen 6 weken." },
+      betwisting: { title: "De rekening betwisten", text: "De vordering of de kosten kloppen niet." },
+      ingebrekestelling: { title: "Ingebrekestelling sturen", text: "De overheid beslist niet op tijd." },
+      klacht: { title: "Een klacht indienen", text: "Over een fout of hoe u bent behandeld." },
+      inzage: { title: "Uw gegevens opvragen (AVG)", text: "Weten welke gegevens ze over u hebben." },
+      kwijtschelding: { title: "Kwijtschelding vragen", text: "U heeft een laag inkomen en kunt de belasting niet betalen." },
     },
     name: "Uw naam",
     address: "Straat en huisnummer",
@@ -267,6 +274,51 @@ export const nl = {
     print: "Afdrukken",
     sendTip: "Stuur de brief per post (het liefst aangetekend), per e-mail of via het contactformulier van de organisatie. Bewaar altijd een kopie.",
     close: "Klaar",
+  },
+
+  tabs: { overview: "Overzicht", pay: "Betalen", disagree: "Niet eens?", help: "Hulp" },
+
+  legal: {
+    payNowTitle: "Direct betalen",
+    payQrTitle: "Scan met uw bank-app",
+    payQrText: "Sommige bank-apps kunnen deze code scannen. Dan staan rekeningnummer, naam, bedrag en kenmerk al ingevuld. Controleer alles in uw bank-app voordat u betaalt.",
+    payQrNote: "Werkt de code niet in uw bank-app? Kopieer dan de gegevens hierboven.",
+    showQr: "Toon betaal-QR-code",
+    payLinkTitle: "Betaallink op de brief",
+    linkSender: "Deze link hoort bij de afzender.",
+    linkBank: "Dit is een betaalpagina van een bank. Controleer in uw bank-app aan wie u betaalt.",
+    linkUnknown: "Let op: deze link hoort niet duidelijk bij de afzender. Open hem liever niet. Betaal via de gegevens op de brief of via de officiële website.",
+    fromQr: "uit de QR-code op de brief",
+    fromText: "uit de tekst van de brief",
+    open: "Openen",
+    officialText: (name: string) => `Betalen of een betalingsregeling aanvragen kan ook via de officiële website van ${name}.`,
+    openSite: "Naar de officiële website",
+    notSafe: "Briefhulp toont hier geen betaalhulp, omdat deze brief op oplichting kan lijken. Controleer eerst of de brief echt is.",
+    cantPayTitle: "Kunt u niet (alles) betalen?",
+    cantPayText: "Dat komt vaak voor. Vraag zo vroeg mogelijk om een regeling of uitstel. Briefhulp maakt de brief voor u.",
+    disagreeTitle: "Ik ben het er niet mee eens",
+    by: (date: string) => `Uiterlijk ${date}`,
+    estimatedNote: "Uitgerekend: 6 weken na de datum van de brief. Controleer de termijn op de brief zelf.",
+    writeLetter: "Schrijf deze brief",
+    lettersTitle: "Brieven die Briefhulp voor u kan maken",
+    rightsTitle: "Uw rechten bij deze brief",
+    rightsIntro: "Korte uitleg over de regels die hierbij passen.",
+    allRights: "Alle onderwerpen bekijken",
+    sources: "Bronnen",
+    checked: (date: string) => `Gecontroleerd op ${date}.`,
+    where: "Waar kunt u terecht?",
+    legalNote: "Dit is algemene informatie, geen juridisch advies. Regels kunnen veranderen. Twijfelt u? Bel Het Juridisch Loket: 0800 - 8020 (gratis).",
+    contentLang: "Deze informatie is in het Engels, omdat de regels Nederlands zijn en precies moeten kloppen.",
+    pageTitle: "Uw rechten bij brieven",
+    pageIntro: "Wat mag wel en niet? Welke stappen kunt u zetten? Kies een onderwerp.",
+    groups: {
+      oneens: "Het niet eens zijn",
+      betalen: "Betalen en kosten",
+      schulden: "Schulden en beslag",
+      wonen: "Wonen en energie",
+      klagen: "Klagen en gegevens",
+      hulp: "Hulp krijgen",
+    },
   },
 
   // Teksten voor de gratis uitleg (vaste regels)
@@ -429,4 +481,4 @@ export const nl = {
 export type Dict = typeof nl;
 
 /** Andere talen: alles verplicht, behalve de lange informatiepagina's en de antwoordbrief-schermen (die vallen terug op Engels). */
-export type Lang = Omit<Dict, "privacyPage" | "aboutPage" | "reply"> & Partial<Pick<Dict, "privacyPage" | "aboutPage" | "reply">>;
+export type Lang = Omit<Dict, "privacyPage" | "aboutPage" | "reply" | "legal"> & Partial<Pick<Dict, "privacyPage" | "aboutPage" | "reply" | "legal">>;

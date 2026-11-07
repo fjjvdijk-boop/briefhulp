@@ -3,21 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "./Icon";
 import { useI18n } from "../lib/i18n/context";
-import { availableReplies, buildReply, loadMe, replySubject, saveMe, type ReplyInput, type ReplyKind } from "../lib/client/reply";
+import { buildReply, loadMe, replySubject, saveMe, type ReplyInput, type ReplyKind } from "../lib/client/reply";
 import type { Analysis } from "../lib/types";
 
-/** Kaart in de uitleg: "Schrijf een brief terug" met de keuzes die bij deze brief passen. */
-export function ReplyCard({ analysis }: { analysis: Analysis }) {
+/** Kaart met brieven die Briefhulp kan maken (de keuzes worden meegegeven). */
+export function ReplyCard({ analysis, kinds, title, intro }: { analysis: Analysis; kinds: ReplyKind[]; title?: string; intro?: string }) {
   const { t } = useI18n();
-  const kinds = availableReplies(analysis);
   const [open, setOpen] = useState<ReplyKind | null>(null);
   if (kinds.length === 0) return null;
   return (
     <section className="card card-reply">
       <h2 className="card-title">
-        <Icon name="send" /> {t.reply.title}
+        <Icon name="send" /> {title ?? t.reply.title}
       </h2>
-      <p className="hint">{t.reply.intro}</p>
+      <p className="hint">{intro ?? t.reply.intro}</p>
       <div className="reply-kinds">
         {kinds.map((k) => (
           <button key={k} className="reply-kind" onClick={() => setOpen(k)}>
@@ -28,6 +27,19 @@ export function ReplyCard({ analysis }: { analysis: Analysis }) {
       </div>
       {open && <ReplySheet kind={open} analysis={analysis} onClose={() => setOpen(null)} />}
     </section>
+  );
+}
+
+/** Kleine knop die direct één soort brief opent. */
+export function ReplySheetButton({ analysis, kind, label }: { analysis: Analysis; kind: ReplyKind; label: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button className="small-btn primary" onClick={() => setOpen(true)}>
+        <Icon name="send" size={18} /> {label}
+      </button>
+      {open && <ReplySheet kind={kind} analysis={analysis} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 

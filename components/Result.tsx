@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "./Icon";
 import { ReplyCard } from "./ReplyLetter";
+import { DisagreePlan, PayHelp, RightsList } from "./LegalParts";
+import { disagreeReplies, paymentReplies } from "../lib/client/reply";
+import { relevantTopics } from "../lib/legal/route";
 import { daysUntil, downloadIcs, formatDateLong, googleCalendarUrl } from "../lib/client/calendar";
 import type { SavedDeadline } from "../lib/client/deadlines";
 import { useI18n } from "../lib/i18n/context";
@@ -11,12 +14,15 @@ import type { Dict } from "../lib/i18n/nl";
 import type { Analysis, Urgency } from "../lib/types";
 
 const URGENCY_ICON: Record<Urgency, string> = { rood: "alert", oranje: "clock", groen: "check" };
+type Tab = "overview" | "pay" | "disagree" | "help";
+const TAB_ICON: Record<Tab, string> = { overview: "check", pay: "euro", disagree: "help", help: "phone" };
 
 interface Props {
   analysis: Analysis;
   mode: "lokaal" | "ai" | "demo" | "voorbeeld";
   typeKey: string;
   letterText: string | null;
+  qrCodes?: string[];
   onUpgrade?: () => void;
   onNew: () => void;
   onRetakePhoto: () => void;
@@ -24,7 +30,7 @@ interface Props {
   savedDeadlines: SavedDeadline[];
 }
 
-export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNew, onRetakePhoto, onSaveDeadline, savedDeadlines }: Props) {
+export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], onUpgrade, onNew, onRetakePhoto, onSaveDeadline, savedDeadlines }: Props) {
   const { t, lang, locale } = useI18n();
   const isExample = mode === "voorbeeld";
   const isDemo = mode === "demo";
@@ -41,6 +47,9 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
   const site = a.contact.website ? (a.contact.website.startsWith("http") ? a.contact.website : `https://${a.contact.website}`) : null;
   const shareText = useMemo(() => buildShareText(a, t, locale), [a, t, locale]);
   const isSaved = savedDeadlines.some((d) => d.date === a.deadline.date && d.sender === a.sender.name);
+  const tabs: Tab[] = ["overview", ...(a.payment.needed ? (["pay"] as Tab[]) : []), "disagree", "help"];
+  const [tab, setTab] = useState<Tab>("overview");
+  useEffect(() => setTab("overview"), [a]);
 
   return (
     <article className="screen result">
@@ -121,11 +130,35 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
         ]}
       />
 
+      <nav className="tabs" role="tablist" aria-label={t.result.inShort}>
+        {tabs.map((k) => (
+          <button
+            key={k}
+            role="tab"
+            id={`tab-${k}`}
+            aria-selected={tab === k}
+            aria-controls="tabpanel"
+            className={`tab ${tab === k ? "on" : ""}`}
+            onClick={() => {
+              setTab(k);
+              document.getElementById("tabpanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          >
+            <Icon name={TAB_ICON[k]} size={20} />
+            <span>{t.tabs[k]}</span>
+          </button>
+        ))}
+      </nav>
+      <div id="tabpanel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="tabpanel">
+
+      {tab === "overview" && (
       <section className="card" dir={contentRtl ? "rtl" : undefined}>
         <h2 className="card-title">{t.result.inShort}</h2>
         <p className="summary">{a.summary}</p>
       </section>
+      )}
 
+      {tab === "overview" && (
       <section className="card card-actions">
         <h2 className="card-title">{t.result.whatToDo}</h2>
         <ol className="checklist" dir={contentRtl ? "rtl" : undefined}>
@@ -149,8 +182,9 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
         </ol>
         {done.length > 0 && done.every(Boolean) && <p className="all-done">{t.result.allDone}</p>}
       </section>
+      )}
 
-      {a.deadline.date && days !== null && (
+      {tab === "overview" && a.deadline.date && days !== null && (
         <section className={`card card-deadline ${days < 0 ? "overdue" : days <= 14 ? "soon" : ""}`}>
           <h2 className="card-title">
             <Icon name="calendar" /> {t.result.deadline}
@@ -206,7 +240,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
         </section>
       )}
 
-      {a.payment.needed && (
+      {tab === "pay" && a.payment.needed && (
         <section className="card card-pay">
           <h2 className="card-title">
             <Icon name="euro" /> {t.result.pay}
@@ -221,7 +255,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
         </section>
       )}
 
-      {a.amounts.length > 0 && (
+      {tab === "pay" && a.amounts.length > 0 && (
         <section className="card">
           <h2 className="card-title">{t.result.amounts}</h2>
           {a.checks?.sumOk && (
@@ -240,14 +274,14 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
         </section>
       )}
 
-      {a.if_you_do_nothing && (
+      {tab === "overview" && a.if_you_do_nothing && (
         <section className="card" dir={contentRtl ? "rtl" : undefined}>
           <h2 className="card-title">{t.result.ifNothing}</h2>
           <p>{a.if_you_do_nothing}</p>
         </section>
       )}
 
-      {a.objection.possible && (
+      {tab === "disagree" && a.objection.possible && (
         <section className="card" dir={contentRtl ? "rtl" : undefined}>
           <h2 className="card-title">{t.result.objection}</h2>
           {a.objection.how && <p>{a.objection.how}</p>}
@@ -259,7 +293,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
         </section>
       )}
 
-      {(telHref || site || a.contact.email) && (
+      {tab === "help" && (telHref || site || a.contact.email) && (
         <section className="card">
           <h2 className="card-title">{t.result.contact(a.sender.name)}</h2>
           <div className="btn-col">
@@ -285,7 +319,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
         </section>
       )}
 
-      {a.references.length > 0 && (
+      {tab === "help" && a.references.length > 0 && (
         <details className="card fold">
           <summary className="card-title">{t.result.refs}</summary>
           <dl className="pay-grid">
@@ -296,7 +330,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
         </details>
       )}
 
-      {a.difficult_words.length > 0 && (
+      {tab === "overview" && a.difficult_words.length > 0 && (
         <details className="card fold">
           <summary className="card-title">{t.result.words}</summary>
           <dl className="words" dir={contentRtl ? "rtl" : undefined}>
@@ -312,9 +346,15 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
         </details>
       )}
 
-      {a.readable && <ReplyCard analysis={a} />}
+      {tab === "pay" && a.readable && <PayHelp analysis={a} letterText={letterText} qrCodes={qrCodes} />}
+      {tab === "pay" && a.readable && (
+        <ReplyCard analysis={a} kinds={paymentReplies(a, typeKey)} title={t.legal.cantPayTitle} intro={t.legal.cantPayText} />
+      )}
+      {tab === "disagree" && <DisagreePlan analysis={a} typeKey={typeKey} />}
+      {tab === "disagree" && a.readable && <ReplyCard analysis={a} kinds={disagreeReplies(a, typeKey)} title={t.legal.lettersTitle} />}
+      {tab === "help" && <RightsList ids={relevantTopics(a, typeKey)} />}
 
-      {onUpgrade && (
+      {tab === "overview" && onUpgrade && (
         <section className="card card-upgrade">
           <h2 className="card-title">{t.result.upgradeTitle}</h2>
           <p>{t.result.upgradeText}</p>
@@ -325,7 +365,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
         </section>
       )}
 
-      {letterText && (
+      {tab === "help" && letterText && (
         <details className="card fold">
           <summary className="card-title">{t.result.letterText}</summary>
           <p className="hint">{t.result.letterTextHint}</p>
@@ -336,8 +376,9 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
         </details>
       )}
 
-      {(mode === "ai" || mode === "demo") && <AskQuestion analysis={a} />}
+      {tab === "help" && (mode === "ai" || mode === "demo") && <AskQuestion analysis={a} />}
 
+      {tab === "help" && (
       <section className="card card-help">
         <h2 className="card-title">
           <Icon name="help" /> {t.result.help}
@@ -363,6 +404,9 @@ export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNe
           </li>
         </ul>
       </section>
+      )}
+
+      </div>
 
       {!isExample && <Feedback mode={mode} senderType={a.sender.type} typeKey={typeKey} urgency={level} />}
 

@@ -227,6 +227,8 @@ export const fr: Lang = {
     calendarSoon1: "Demain",
     actionNeeded: "Action nécessaire",
   },
+  tabs: { overview: "Aperçu", pay: "Payer", disagree: "Pas d'accord ?", help: "Aide" },
+
   r: {
     unknownSender: "Expéditeur inconnu",
     amount: "Montant",

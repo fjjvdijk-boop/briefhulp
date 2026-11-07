@@ -227,6 +227,8 @@ export const fa: Lang = {
     calendarSoon1: "فردا",
     actionNeeded: "اقدام لازم است",
   },
+  tabs: { overview: "خلاصه", pay: "پرداخت", disagree: "موافق نیستید؟", help: "کمک" },
+
   r: {
     unknownSender: "فرستنده‌ی ناشناس",
     amount: "مبلغ",

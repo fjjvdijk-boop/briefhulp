@@ -1,8 +1,20 @@
 // Antwoordbrieven: kant-en-klare brieven in het Nederlands (de organisatie is Nederlands),
 // ingevuld met de gegevens uit de uitleg. De gebruiker vult alleen naam en adres in.
 import type { Analysis } from "../types";
+import { disagreeRoute } from "../legal/route";
 
-export type ReplyKind = "regeling" | "uitstel" | "bezwaar" | "specificatie";
+export type ReplyKind =
+  | "regeling"
+  | "uitstel"
+  | "bezwaar"
+  | "specificatie"
+  | "beroep"
+  | "cjibBeroep"
+  | "betwisting"
+  | "ingebrekestelling"
+  | "klacht"
+  | "inzage"
+  | "kwijtschelding";
 
 export interface ReplyInput {
   name: string;
@@ -13,12 +25,25 @@ export interface ReplyInput {
   reason: string; // eigen toelichting (optioneel)
 }
 
-export function availableReplies(a: Analysis): ReplyKind[] {
-  const out: ReplyKind[] = [];
-  if (a.payment.needed) out.push("regeling", "uitstel");
-  if (a.objection.possible) out.push("bezwaar");
-  if (a.payment.needed && ["incassobureau", "deurwaarder"].includes(a.sender.type)) out.push("specificatie");
+/** Brieven voor betalen (regeling, uitstel, kwijtschelding). */
+export function paymentReplies(a: Analysis, typeKey = ""): ReplyKind[] {
+  if (!a.payment.needed) return [];
+  const out: ReplyKind[] = ["regeling", "uitstel"];
+  if (a.sender.type === "gemeente" && /aanslag/i.test(typeKey + a.letter_type)) out.push("kwijtschelding");
   return out;
+}
+
+/** Brieven als u het niet eens bent (volgens de route), plus gegevens opvragen. */
+export function disagreeReplies(a: Analysis, typeKey = ""): ReplyKind[] {
+  const out: ReplyKind[] = [];
+  for (const st of disagreeRoute(a, typeKey).steps) if (st.reply && !out.includes(st.reply) && st.reply !== "regeling") out.push(st.reply);
+  if (a.objection.possible && !out.includes("bezwaar") && !out.includes("cjibBeroep")) out.unshift("bezwaar");
+  out.push("inzage");
+  return out;
+}
+
+export function availableReplies(a: Analysis, typeKey = ""): ReplyKind[] {
+  return [...paymentReplies(a, typeKey), ...disagreeReplies(a, typeKey)];
 }
 
 function nlDate(iso?: string | null) {
@@ -39,7 +64,21 @@ const SUBJECT: Record<ReplyKind, string> = {
   uitstel: "Verzoek om uitstel van betaling",
   bezwaar: "Bezwaar",
   specificatie: "Verzoek om specificatie van de vordering",
+  beroep: "Beroepschrift",
+  cjibBeroep: "Beroep tegen verkeersboete (Mulderbeschikking)",
+  betwisting: "Betwisting van de vordering",
+  ingebrekestelling: "Ingebrekestelling wegens niet tijdig beslissen",
+  klacht: "Klacht",
+  inzage: "Verzoek om inzage in mijn persoonsgegevens (artikel 15 AVG)",
+  kwijtschelding: "Verzoek om kwijtschelding",
 };
+
+/** Aan wie de brief gaat (als dat niet de afzender is). */
+function recipient(kind: ReplyKind, sender: string) {
+  if (kind === "beroep") return "Rechtbank [naam rechtbank, zie de beslissing op bezwaar]\nSector bestuursrecht";
+  if (kind === "cjibBeroep") return "Officier van justitie\n[adres zoals vermeld op de beschikking of op om.nl]";
+  return sender;
+}
 
 export function replySubject(kind: ReplyKind, a: Analysis) {
   return `${SUBJECT[kind]} – ${refLines(a)[0]}`;
@@ -86,6 +125,60 @@ export function buildReply(kind: ReplyKind, a: Analysis, input: ReplyInput, lett
         `Wilt u ook de stukken sturen waarop het besluit is gebaseerd?`,
       ];
       break;
+    case "beroep":
+      body = [
+        `Hierbij ga ik in beroep tegen de beslissing op mijn bezwaar van [datum beslissing op bezwaar], genomen door ${sender}.`,
+        `Kenmerk van de beslissing: [kenmerk]. Een kopie van de beslissing stuur ik mee.`,
+        reason
+          ? `Ik ben het niet eens met deze beslissing, omdat: ${reason}`
+          : `De gronden van mijn beroep stuur ik zo snel mogelijk na. Ik verzoek u mij daarvoor een termijn te geven.`,
+        `Ik verzoek de rechtbank het beroep gegrond te verklaren en de beslissing te vernietigen.`,
+      ];
+      break;
+    case "cjibBeroep":
+      body = [
+        `Hierbij ga ik in beroep tegen de beschikking${a.payment.reference ? ` met kenmerk ${a.payment.reference}` : ""}${letterDate ? ` van ${nlDate(letterDate)}` : ""}, voor de gedraging op [datum] met kenteken [kenteken].`,
+        reason ? `Ik ben het niet eens met deze beschikking, omdat: ${reason}` : `Ik ben het niet eens met deze beschikking, omdat: [leg uit waarom, bijvoorbeeld: ik reed daar niet / het bord was niet zichtbaar].`,
+        `Ik verzoek u de beschikking te vernietigen. Een kopie van de beschikking stuur ik mee.`,
+      ];
+      break;
+    case "betwisting":
+      body = [
+        `Ik heb ${brief} ontvangen. Daarin vraagt u mij ${amount} te betalen.`,
+        `Ik betwist deze vordering${reason ? `, omdat: ${reason}` : ", omdat: [leg uit waarom, bijvoorbeeld: ik heb al betaald / ik heb dit niet besteld / ik heb geen 14-dagenbrief ontvangen / de incassokosten zijn te hoog]"}.`,
+        `Ik verzoek u de invordering op te schorten en mij te laten weten namens wie u incasseert, en een specificatie te sturen van hoofdsom, kosten en rente.`,
+        `Ik verzoek u ook om uw inschrijving in het Register Incassodienstverlening te vermelden.`,
+      ];
+      break;
+    case "ingebrekestelling":
+      body = [
+        `Op [datum aanvraag of bezwaar] heb ik een [aanvraag / bezwaarschrift] bij u ingediend over [onderwerp].`,
+        `De termijn waarbinnen u moest beslissen is verstreken. Hierbij stel ik u in gebreke.`,
+        `Ik verzoek u binnen twee weken na ontvangst van deze brief alsnog te beslissen. Doet u dat niet, dan bent u een dwangsom verschuldigd volgens de Algemene wet bestuursrecht.`,
+      ];
+      break;
+    case "klacht":
+      body = [
+        `Ik dien hierbij een klacht in over ${brief}${reason ? "" : " en de manier waarop mijn zaak is behandeld"}.`,
+        reason ? `Mijn klacht: ${reason}` : `Mijn klacht: [beschrijf wat er gebeurd is, wanneer, en met wie u contact had].`,
+        `Ik verzoek u mijn klacht te behandelen en mij schriftelijk te laten weten wat u ermee doet.`,
+      ];
+      break;
+    case "inzage":
+      body = [
+        `Op grond van artikel 15 van de Algemene verordening gegevensbescherming (AVG) vraag ik u om inzage in alle persoonsgegevens die u van mij verwerkt.`,
+        `Wilt u mij laten weten: welke gegevens u heeft, waarvoor u ze gebruikt, van wie u ze heeft gekregen, aan wie u ze heeft gegeven en hoe lang u ze bewaart?`,
+        `U moet binnen een maand na ontvangst van dit verzoek reageren. Een kopie van mijn identiteitsbewijs stuur ik alleen mee als u daarom vraagt.`,
+      ];
+      break;
+    case "kwijtschelding":
+      body = [
+        `Ik heb ${brief} ontvangen met een aanslag van ${amount}.`,
+        `Ik heb een laag inkomen en weinig of geen vermogen. Daarom vraag ik u om kwijtschelding van deze aanslag.`,
+        reason ? `Toelichting: ${reason}` : "",
+        `Wilt u mij het aanvraagformulier sturen als dat nodig is? Ik vraag u om de invordering op te schorten zolang mijn verzoek in behandeling is.`,
+      ];
+      break;
     case "specificatie":
       body = [
         `Ik heb ${brief} ontvangen. Daarin vraagt u mij ${amount} te betalen.`,
@@ -100,7 +193,7 @@ export function buildReply(kind: ReplyKind, a: Analysis, input: ReplyInput, lett
   return [
     ...me,
     "",
-    sender,
+    recipient(kind, sender),
     "",
     `${nlDate(null)}`,
     "",

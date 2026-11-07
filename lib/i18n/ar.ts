@@ -227,6 +227,8 @@ export const ar: Lang = {
     calendarSoon1: "غدًا",
     actionNeeded: "مطلوب إجراء",
   },
+  tabs: { overview: "نظرة عامة", pay: "الدفع", disagree: "لا توافق؟", help: "مساعدة" },
+
   r: {
     unknownSender: "جهة مرسلة غير معروفة",
     amount: "المبلغ",

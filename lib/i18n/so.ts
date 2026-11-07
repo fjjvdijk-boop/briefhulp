@@ -227,6 +227,8 @@ export const so: Lang = {
     calendarSoon1: "Berri",
     actionNeeded: "Wax baa loo baahan yahay",
   },
+  tabs: { overview: "Guudmar", pay: "Bixi", disagree: "Ma diidan tahay?", help: "Caawimaad" },
+
   r: {
     unknownSender: "Qof aan la garanayn",
     amount: "Lacag",

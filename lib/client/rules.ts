@@ -145,7 +145,7 @@ function findAmounts(text: string): AmountHit[] {
 const TOTAL_WORDS = /(totaal|te betalen|openstaand|verschuldigd|nog te betalen|totaalbedrag|terug te betalen|vordering|saldo)/i;
 
 // ---------- Rekeningnummer, kenmerken, contact ----------
-function ibanValid(iban: string) {
+export function ibanValid(iban: string) {
   const s = iban.replace(/\s/g, "").toUpperCase();
   if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(s)) return false;
   if (s.startsWith("NL") && s.length !== 18) return false;

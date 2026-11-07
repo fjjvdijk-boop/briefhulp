@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "./Icon";
 import { getDict } from "../lib/i18n";
+import { I18nProvider } from "../lib/i18n/context";
+import { AllTopics } from "./LegalParts";
 
 const VERSION = "1.0";
 
@@ -107,6 +109,23 @@ export function AboutPage() {
       <Link href="/" className="btn btn-primary">
         Briefhulp
       </Link>
+    </Shell>
+  );
+}
+
+export function RightsPage() {
+  const t = useLang();
+  return (
+    <Shell>
+      <I18nProvider lang={t.code} dict={t}>
+        <h1 className="title">{t.legal.pageTitle}</h1>
+        <p className="lead">{t.legal.pageIntro}</p>
+        {t.code !== "nl" && t.code !== "en" && <p className="hint">{t.legal.contentLang}</p>}
+        <AllTopics />
+        <Link href="/" className="btn btn-primary">
+          Briefhulp
+        </Link>
+      </I18nProvider>
     </Shell>
   );
 }

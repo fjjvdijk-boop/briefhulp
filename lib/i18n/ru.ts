@@ -227,6 +227,8 @@ export const ru: Lang = {
     calendarSoon1: "Завтра",
     actionNeeded: "Нужно действие",
   },
+  tabs: { overview: "Обзор", pay: "Оплата", disagree: "Не согласны?", help: "Помощь" },
+
   r: {
     unknownSender: "Неизвестный отправитель",
     amount: "Сумма",

@@ -18,6 +18,7 @@ export interface Case {
     estimate: boolean;
     scam: boolean;
     objection: boolean;
+    route: string;
   }>;
 }
 
@@ -35,7 +36,7 @@ Incassokosten € 40,00
 Totaal te betalen € 192,40
 Wij verzoeken u het totaalbedrag uiterlijk 16 november 2026 over te maken op NL91 ABNA 0417 1643 00 t.n.v. Incassobureau Noordpunt, onder vermelding van betalingskenmerk 7002 4415 8890 1123.
 Indien betaling uitblijft, zullen wij de vordering overdragen aan een gerechtsdeurwaarder.`,
-    expect: { urgency: "rood", type: "aanmaning", sender: "incassobureau", senderName: /Noordpunt.*namens Zorgverzekeraar Zuidhaven/, pay: true, amount: "192,40", iban: "NL91 ABNA 0417 1643 00", reference: "7002 4415 8890 1123", deadline: "2026-11-16", scam: false },
+    expect: { route: "incasso", urgency: "rood", type: "aanmaning", sender: "incassobureau", senderName: /Noordpunt.*namens Zorgverzekeraar Zuidhaven/, pay: true, amount: "192,40", iban: "NL91 ABNA 0417 1643 00", reference: "7002 4415 8890 1123", deadline: "2026-11-16", scam: false },
   },
   {
     name: "Incasso: zelfde brief met tekstherkenningsfouten",
@@ -57,7 +58,7 @@ Aanslagnummer: 1234.56.789.H.76
 U krijgt € 312 terug. Wij betalen dit bedrag in maandelijkse termijnen uit op uw rekening.
 U hoeft hiervoor niets te doen.
 Bent u het niet eens met deze aanslag? Dan kunt u binnen zes weken na de datum van deze aanslag bezwaar maken.`,
-    expect: { urgency: "groen", type: "voorlopigeAanslag", sender: "belastingdienst", pay: false, objection: true },
+    expect: { route: "belasting", urgency: "groen", type: "voorlopigeAanslag", sender: "belastingdienst", pay: false, objection: true },
   },
   {
     name: "CJIB: verkeersboete met verhoging",
@@ -68,7 +69,7 @@ Aanmaning
 U heeft de boete van € 110,00 niet op tijd betaald. Daarom is het bedrag verhoogd met € 55,00.
 Te betalen: € 165,00
 Betaal uiterlijk 3 december 2026 op NL86 INGB 0002 4455 88 o.v.v. betalingskenmerk 3201 4455 6677 8899.`,
-    expect: { urgency: "rood", type: "cjib", sender: "cjib", pay: true, amount: "165,00", deadline: "2026-12-03" },
+    expect: { route: "cjib", urgency: "rood", type: "cjib", sender: "cjib", pay: true, amount: "165,00", deadline: "2026-12-03" },
   },
   {
     name: "Gemeente: aanslag met automatische incasso",
@@ -79,7 +80,7 @@ Afvalstoffenheffing € 312,00
 Rioolheffing € 189,00
 Totaal € 501,00
 U betaalt via automatische incasso. Het bedrag wordt in 10 termijnen van uw rekening afgeschreven.`,
-    expect: { urgency: "groen", sender: "gemeente", senderName: /Gemeente Voorbeeldstad/, pay: false },
+    expect: { route: "overheid", urgency: "groen", sender: "gemeente", senderName: /Gemeente Voorbeeldstad/, pay: false },
   },
   {
     name: "Toeslagen: terugvordering zorgtoeslag met bezwaar",
@@ -90,7 +91,7 @@ U heeft te veel zorgtoeslag gekregen. U moet € 450,00 terugbetalen.
 Betaal het bedrag uiterlijk 15 januari 2027 op NL86 INGB 0002 4455 88 onder vermelding van betalingskenmerk 0000 1111 2222 3333.
 Kunt u niet in één keer betalen? Dan kunt u een betalingsregeling aanvragen.
 Bent u het niet eens met dit besluit? Maak dan binnen zes weken bezwaar.`,
-    expect: { urgency: "oranje", type: "terugvordering", sender: "toeslagen", pay: true, amount: "450,00", deadline: "2027-01-15", objection: true },
+    expect: { route: "belasting", urgency: "oranje", type: "terugvordering", sender: "toeslagen", pay: true, amount: "450,00", deadline: "2027-01-15", objection: true },
   },
   {
     name: "WOZ-beschikking (geen betaling)",
@@ -99,7 +100,7 @@ Datum: 31 oktober 2026
 WOZ-beschikking 2026
 De WOZ-waarde van uw woning aan de Lindelaan 12 is vastgesteld op € 345.000.
 Bent u het niet eens met de WOZ-waarde? Dan kunt u binnen 6 weken na de dagtekening bezwaar maken.`,
-    expect: { type: "woz", pay: false, objection: true },
+    expect: { route: "overheid", type: "woz", pay: false, objection: true },
   },
   {
     name: "Uitnodiging aangifte inkomstenbelasting",
@@ -125,7 +126,7 @@ Datum: 30 oktober 2026
 DAGVAARDING
 Namens Energiebedrijf Zonnig B.V. roep ik u op om te verschijnen bij de kantonrechter van de rechtbank Midden-Nederland op 2 december 2026 om 10.00 uur.
 De vordering bedraagt € 864,25.`,
-    expect: { urgency: "rood", type: "dagvaarding", sender: "deurwaarder", deadline: "2026-12-02" },
+    expect: { route: "incasso", urgency: "rood", type: "dagvaarding", sender: "deurwaarder", deadline: "2026-12-02" },
   },
   {
     name: "Woningcorporatie: huurverhoging",
@@ -134,7 +135,7 @@ Datum: 1 november 2026
 Voorstel huurverhoging per 1 juli 2027
 Uw nieuwe huurprijs wordt € 712,40 per maand. Dat is € 31,20 meer dan nu.
 Bent u het niet eens? Dan kunt u bezwaar maken vóór 1 juli 2027.`,
-    expect: { urgency: "oranje", type: "huurverhoging", sender: "woning", objection: true },
+    expect: { route: "huur", urgency: "oranje", type: "huurverhoging", sender: "woning", objection: true },
   },
   {
     name: "Energie: jaarafrekening, u krijgt geld terug",
@@ -153,7 +154,7 @@ Factuurnummer: 88112233
 Factuur eigen risico
 Te betalen € 385,00
 Betaal binnen 14 dagen na de factuurdatum op NL20 INGB 0001 2345 67 onder vermelding van het factuurnummer.`,
-    expect: { type: "factuur", sender: "zorgverzekeraar", pay: true, amount: "385,00", deadline: "2026-11-17", estimate: true },
+    expect: { route: "zorgverzekeraar", type: "factuur", sender: "zorgverzekeraar", pay: true, amount: "385,00", deadline: "2026-11-17", estimate: true },
   },
   {
     name: "UWV: besluit, niets te doen",
@@ -161,7 +162,7 @@ Betaal binnen 14 dagen na de factuurdatum op NL20 INGB 0001 2345 67 onder vermel
 Datum: 5 november 2026
 Besluit over uw WW-uitkering
 U krijgt vanaf 1 december 2026 een WW-uitkering. U hoeft hiervoor niets te doen. Wij betalen de uitkering elke maand uit.`,
-    expect: { urgency: "groen", sender: "uwv", pay: false },
+    expect: { route: "overheid", urgency: "groen", sender: "uwv", pay: false },
   },
 ];
 
@@ -173,4 +174,14 @@ Datum: 2 november 2026
 Totaal te betalen € 192,40
 Betaal uiterlijk 16 november 2026 op NL9I ABNA O4I7 1643 OO t.n.v. Incassobureau Noordpunt.`,
   expect: { pay: true, iban: "NL91 ABNA 0417 1643 00" },
+});
+
+CASES.push({
+  name: "Verzekeraar wijst schadeclaim af (Kifid-route)",
+  text: `Veilig Thuis Verzekeringen
+Datum: 1 november 2026
+Uw schademelding: afwijzing
+Wij hebben uw schademelding beoordeeld. Wij vergoeden de schade niet, omdat de schade niet onder de dekking van uw polis valt.
+Bent u het niet eens met onze beslissing? Dan kunt u een klacht indienen bij onze klachtenafdeling.`,
+  expect: { route: "verzekeraar", pay: false },
 });

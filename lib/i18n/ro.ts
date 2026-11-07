@@ -227,6 +227,8 @@ export const ro: Lang = {
     calendarSoon1: "Mâine",
     actionNeeded: "Trebuie să faceți ceva",
   },
+  tabs: { overview: "Pe scurt", pay: "Plată", disagree: "Nu sunteți de acord?", help: "Ajutor" },
+
   r: {
     unknownSender: "Expeditor necunoscut",
     amount: "Sumă",

@@ -2,6 +2,10 @@
 import { explainLocally } from "../lib/client/rules";
 import { getDict, BUILT_IN_ORDER } from "../lib/i18n";
 import { CASES, TODAY } from "./letters";
+import { routeKind, relevantTopics, disagreeRoute } from "../lib/legal/route";
+import { TOPICS } from "../lib/legal/topics";
+import { epcPayload, linkStatus, paymentSafe } from "../lib/client/pay";
+import { availableReplies, buildReply } from "../lib/client/reply";
 
 const t = getDict("nl");
 let passed = 0;
@@ -26,6 +30,18 @@ for (const c of CASES) {
   if (e.scam !== undefined) add("nep", a.scam_check.suspicious === e.scam, a.scam_check.suspicious, e.scam);
   if (e.objection !== undefined) add("bezwaar", a.objection.possible === e.objection, a.objection.possible, e.objection);
   if (c.name.startsWith("Incasso: aanmaning")) add("bedragen-optellen", a.checks?.sumOk === true, a.checks?.sumOk, true);
+  if (e.route) add("route", routeKind(a, typeKey) === e.route, routeKind(a, typeKey), e.route);
+  // Betaalhulp nooit bij een nepbrief; bij een echte betaalbrief met geldig IBAN wél een betaal-QR.
+  if (e.scam) add("geen-betaalhulp-bij-nep", !paymentSafe(a) && !(paymentSafe(a) && epcPayload(a)), paymentSafe(a), false);
+  if (e.pay && !e.scam && a.payment.iban) add("betaal-qr", !!epcPayload(a), !!epcPayload(a), true);
+  // Elke voorgestelde antwoordbrief moet netjes te maken zijn.
+  for (const k of availableReplies(a, typeKey)) {
+    const letter = buildReply(k, a, { name: "A. Test", address: "Straat 1", postcode: "1234 AB Plaats", phone: "", monthly: "25", reason: "" }, a.letter_date);
+    add(`brief-${k}`, !/undefined|null|NaN/.test(letter) && letter.includes("A. Test"), letter.slice(0, 40), "nette brief");
+  }
+  // Elk onderwerp dat we tonen moet bestaan; elke route-stap heeft tekst.
+  add("onderwerpen", relevantTopics(a, typeKey).every((id) => TOPICS.some((x) => x.id === id)), relevantTopics(a, typeKey), "bestaand");
+  add("route-stappen", disagreeRoute(a, typeKey).steps.every((st) => st.title.nl && st.text.en), "", "tekst");
   for (const [label, ok, got, want] of checks) {
     if (ok) passed++;
     else {
@@ -44,6 +60,38 @@ for (const code of BUILT_IN_ORDER) {
   } catch (err) {
     failed++;
     fails.push(`  ✗ taal ${code}: ${(err as Error).message}`);
+  }
+}
+
+// Betaal-QR: exact formaat volgens EPC-standaard (versie 002)
+{
+  const { analysis: a } = explainLocally(CASES[0].text, 95, TODAY, t, "nl-NL");
+  const want = ["BCD", "002", "1", "SCT", "", "Incassobureau Noordpunt", "NL91ABNA0417164300", "EUR192.40", "", "", "7002441588901123", ""].join("\n");
+  const got = epcPayload(a);
+  if (got === want) passed++;
+  else {
+    failed++;
+    fails.push(`  ✗ EPC-QR formaat: kreeg ${JSON.stringify(got)}`);
+  }
+  // Linkcontrole
+  const checks: [string, string][] = [
+    ["https://noordpunt-incasso.nl/betalen", "afzender"],
+    ["https://betaal-nu-snel.com/pay", "onbekend"],
+    ["https://tikkie.me/pay/abc", "bank"],
+  ];
+  for (const [url, want2] of checks) {
+    const got2 = linkStatus(url, a);
+    if (got2 === want2) passed++;
+    else {
+      failed++;
+      fails.push(`  ✗ link ${url}: kreeg ${got2}, verwacht ${want2}`);
+    }
+  }
+  const cj = explainLocally(CASES.find((c) => c.name.startsWith("CJIB"))!.text, 95, TODAY, t, "nl-NL").analysis;
+  if (linkStatus("https://www.cjib.nl/betalen", cj) === "afzender" && linkStatus("https://cjib-betalen.com", cj) === "onbekend") passed++;
+  else {
+    failed++;
+    fails.push("  ✗ CJIB-linkcontrole");
   }
 }
 
