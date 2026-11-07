@@ -3,6 +3,18 @@
 **Brief gekregen? Wij leggen het uit.**
 Maak een foto van een brief van de Belastingdienst, de gemeente, een verzekeraar of een incassobureau. Briefhulp legt in eenvoudig Nederlands (B1) uit wat er staat, wat u moet doen en voor wanneer.
 
+## Wat is er nieuw in versie 1.0
+
+- **Opstarten:** eerst *Kies uw taal*, daarna een welkomstscherm (wat het is, gratis, privé, geen advies). Daarna het startscherm.
+- **13 talen volledig ingebouwd** (app én gratis uitleg, offline): Nederlands, English, العربية, Türkçe, Polski, Українська, Русский, Română, Español, Français, فارسی, Soomaali, Português. **± 180 andere talen** te kiezen: knoppen in het Engels, AI-uitleg (als die aan staat) in die taal. Arabisch en Farsi van rechts naar links.
+- **Betere herkenning:** foto wordt automatisch verbeterd (grijs, contrast, vergroten) en de app waarschuwt bij een donkere, wazige of kleine foto, met een knop "Nieuwe foto".
+- **Meer soorten brieven:** CJIB, terugvordering toeslagen, WOZ-beschikking, aangifte-uitnodiging, huurverhoging, jaarafrekening, factuur, dagvaarding en meer.
+- **Mijn deadlines:** bewaar een deadline (alleen op de telefoon, zonder foto) en zie hem op het startscherm.
+- **Installeerbaar en offline** (service worker), **hele brief voorlezen**, **"Klopte deze uitleg?"** (anoniem: alleen ja/nee + soort brief).
+- **Testset:** `npm test` controleert 14 verzonnen brieven en alle talen (81/81 goed).
+
+> Let op: de vertalingen zijn door AI gemaakt. Laat ze vóór een officiële lancering nakijken door moedertaalsprekers.
+
 ## Twee manieren van uitleggen
 
 | | **Gratis uitleg** (standaard) | **Volledige uitleg** (optioneel) |
@@ -26,7 +38,7 @@ Zonder `ANTHROPIC_API_KEY` draait de app **alleen gratis**: de knop voor de voll
 | ⚠️ **Nep-brief-check** | Waarschuwt bij signalen van oplichting en verwijst naar de Fraudehelpdesk. |
 | ⚖️ **Bezwaar** | Of en hoe je bezwaar kunt maken, en de termijn. |
 | 🔊 **Voorlezen** | Ingebouwde spraak van de telefoon. |
-| 🌍 **9 talen** | Nederlands, English, Türkçe, العربية (van rechts naar links), Polski, Українська, Tigrinya, Soomaali, Español. |
+| 🌍 **Talen** | 13 volledig ingebouwd, ± 180 te kiezen (zie boven). |
 | 💬 **Vervolgvragen** | "Wat als ik niet kan betalen?" |
 | 🤝 **Hulp** | Passende hulp: Juridisch Loket, BelastingTelefoon, Geldfit, schuldhulp van de gemeente. |
 | 📤 **Delen** | Stuur de uitleg naar familie of een hulpverlener (WhatsApp, e-mail), of druk hem af. |

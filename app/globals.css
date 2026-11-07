@@ -1241,3 +1241,382 @@ main {
 .hint svg {
   vertical-align: -3px;
 }
+
+/* ---------- Merk en bovenbalk ---------- */
+.brand span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+.brand small {
+  font-size: 0.62rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+.brand img {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(27, 63, 166, 0.25);
+}
+.topbar-right {
+  display: flex;
+  gap: 8px;
+}
+.topbar-btn {
+  min-width: 48px;
+  justify-content: center;
+}
+.lang-code {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Taal kiezen ---------- */
+.lang-hero {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-top: 8px;
+}
+.lang-hero img {
+  border-radius: 18px;
+  box-shadow: 0 6px 20px rgba(27, 63, 166, 0.25);
+  flex: none;
+}
+.lang-hero .title {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.lang-sub {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+.search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 0 14px;
+  min-height: 60px;
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  box-shadow: var(--shadow);
+}
+.search:focus-within {
+  border-color: var(--primary);
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  min-height: 56px;
+  outline: none;
+}
+.lang-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.lang-btn {
+  position: relative;
+  width: 100%;
+  min-height: 76px;
+  border-radius: 16px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  padding: 10px 40px 10px 14px;
+  text-align: start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+.lang-btn[dir="rtl"] {
+  padding: 10px 14px 10px 40px;
+}
+.lang-btn:hover {
+  border-color: var(--primary);
+}
+.lang-btn.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.lang-btn svg {
+  position: absolute;
+  inset-inline-end: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--primary);
+}
+.lang-btn .lang-en {
+  text-align: start;
+}
+.lang-native {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.lang-en {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+.more-langs {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0 14px;
+}
+.more-langs summary {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  cursor: pointer;
+}
+.count {
+  font-size: 0.75rem;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+.lang-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+.lang-row {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--line);
+  padding: 8px 4px;
+  cursor: pointer;
+  text-align: start;
+}
+.lang-row.on {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ---------- Welkom ---------- */
+.welcome-hero {
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding-top: 12px;
+}
+.welcome-hero img {
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(27, 63, 166, 0.3);
+}
+.welcome .how {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px;
+  border: 1px solid var(--line);
+}
+.pillars {
+  display: grid;
+  gap: 10px;
+}
+.pillar {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+.pillar > svg {
+  flex: none;
+  color: var(--green);
+  margin-top: 2px;
+}
+.pillar strong {
+  display: block;
+}
+.pillar span {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+/* ---------- Mijn deadlines, installeren ---------- */
+.deadline-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+  display: grid;
+  gap: 10px;
+}
+.deadline-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border-inline-start: 6px solid var(--primary);
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.deadline-list li.soon,
+.deadline-list li.overdue {
+  border-inline-start-color: var(--red);
+}
+.deadline-list div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.deadline-list span {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.deadline-list .dl-date {
+  color: var(--ink);
+  font-weight: 700;
+}
+.soon .dl-date,
+.overdue .dl-date {
+  color: var(--red);
+}
+.chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  flex: none;
+}
+.card-install {
+  border: 2px dashed var(--primary);
+}
+.save-deadline {
+  margin-top: 6px;
+  display: grid;
+  gap: 6px;
+}
+.btn.saved {
+  color: var(--green);
+  border-color: var(--green);
+  opacity: 1;
+}
+
+/* ---------- Bladzijden met kwaliteitswaarschuwing ---------- */
+.thumbs .thumb-wrap {
+  display: grid;
+  gap: 6px;
+}
+.thumb-wrap.has-warn .thumb {
+  border-color: var(--orange);
+}
+.thumb-warn {
+  background: var(--orange-soft);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  display: grid;
+  gap: 4px;
+}
+.thumb-warn p {
+  margin: 0;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+.thumb-warn svg {
+  flex: none;
+  color: var(--orange);
+  margin-top: 2px;
+}
+.small-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  border: 2px solid var(--orange);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  width: fit-content;
+}
+
+/* ---------- Feedback en kleine voorleesknop ---------- */
+.feedback {
+  text-align: center;
+  padding: 8px 0;
+}
+.feedback p {
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+.feedback-btns {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.btn-small {
+  min-height: 52px;
+  font-size: 0.9rem;
+  margin: 8px 0;
+}
+.about-hero {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.about-hero img {
+  border-radius: 18px;
+}
+.about-hero .title {
+  margin: 0;
+}
+
+/* ---------- Van rechts naar links (Arabisch, Farsi) ---------- */
+[dir="rtl"] .fold summary::after {
+  margin-left: 0;
+  margin-right: auto;
+}
+[dir="rtl"] .local-banner,
+[dir="rtl"] .notice {
+  border-left: 0;
+}
+[dir="rtl"] .notice {
+  border-right: 6px solid var(--orange);
+}
+[dir="rtl"] .icon-back,
+[dir="rtl"] .icon-send {
+  transform: scaleX(-1);
+}
+.lang-btn > span {
+  align-self: flex-start;
+}

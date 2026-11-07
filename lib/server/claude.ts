@@ -23,7 +23,16 @@ export class UserFacingError extends Error {
 }
 
 function languagePrompt(code: string) {
-  return (LANGUAGES.find((l) => l.code === code) ?? LANGUAGES[0]).prompt;
+  const known = LANGUAGES.find((l) => l.code === code);
+  if (known) return known.prompt;
+  // Elke andere taal: naam opzoeken (bijv. "ti" → "Tigrinya") en die taal vragen.
+  let name = code;
+  try {
+    name = new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? code;
+  } catch {
+    /* onbekende code */
+  }
+  return `eenvoudig ${name} (taalcode "${code}", B1-niveau; gebruik het gebruikelijke schrift van die taal)`;
 }
 
 function formatToday(iso: string) {

@@ -93,3 +93,39 @@ export function makeSample(): Analysis {
 }
 
 export const SAMPLE_ANALYSIS: Analysis = makeSample();
+
+/** Tekst van een verzonnen voorbeeldbrief (fictieve organisaties) voor "Bekijk een voorbeeld" in de gratis modus. */
+export function sampleLetterText() {
+  const d = (n: number) => {
+    const x = new Date();
+    x.setDate(x.getDate() + n);
+    return x.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
+  };
+  return `Incassobureau Noordpunt B.V.
+Postbus 1234, 9700 AA Groningen Tel: 050 - 123 45 67 www.voorbeeld-incasso.nl
+
+Mevrouw A. de Vries
+Lindelaan 12
+3512 AB Utrecht
+
+Datum: ${d(-5)}
+Dossiernummer: NP-2026-448190
+Uw BSN: *****482
+
+Aanmaning
+
+Geachte mevrouw De Vries,
+
+Namens onze opdrachtgever Zorgverzekeraar Zuidhaven vorderen wij betaling van de achterstallige premie. Ondanks eerdere herinneringen hebben wij nog geen betaling ontvangen.
+
+Hoofdsom € 152,40
+Incassokosten € 35,00
+Totaal te betalen € 187,40
+
+Wij verzoeken u het totaalbedrag uiterlijk ${d(9)} over te maken op NL91 ABNA 0417 1643 00 t.n.v. Incassobureau Noordpunt, onder vermelding van betalingskenmerk 7002 4415 8890 1123.
+
+Kunt u niet in één keer betalen? Neem dan contact met ons op voor een betalingsregeling. Indien betaling uitblijft, zullen wij de vordering overdragen aan een gerechtsdeurwaarder.
+
+Met vriendelijke groet,
+Incassobureau Noordpunt`;
+}

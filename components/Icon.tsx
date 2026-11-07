@@ -106,6 +106,7 @@ export function Icon({ name, size = 28 }: { name: keyof typeof paths | string; s
       strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
+      className={`icon icon-${name}`}
     >
       {paths[name]}
     </svg>

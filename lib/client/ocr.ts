@@ -24,6 +24,10 @@ async function getWorker(): Promise<TesseractWorker> {
         // Taalbestand wordt na de eerste keer bewaard in de browser (sneller, werkt daarna ook met slecht internet).
         cacheMethod: "write",
         logger: (m) => onLog?.(m.progress ?? 0, m.status ?? ""),
+      }).then(async (w) => {
+        // Spaties tussen woorden bewaren: beter voor bedragen, IBAN's en kenmerken.
+        await w.setParameters({ preserve_interword_spaces: "1" });
+        return w;
       });
     })().catch((e) => {
       workerPromise = null;
@@ -33,8 +37,62 @@ async function getWorker(): Promise<TesseractWorker> {
   return workerPromise;
 }
 
+/**
+ * Maakt een foto beter leesbaar voor de tekstherkenning:
+ * grijs, contrast oprekken (schaduw en vergeling weg) en kleine foto's vergroten.
+ */
+export async function enhanceForOcr(src: string | HTMLCanvasElement): Promise<HTMLCanvasElement> {
+  let source: CanvasImageSource;
+  let w: number;
+  let h: number;
+  if (typeof src === "string") {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    source = img;
+    w = img.naturalWidth;
+    h = img.naturalHeight;
+  } else {
+    source = src;
+    w = src.width;
+    h = src.height;
+  }
+  const scale = Math.max(w, h) < 1800 ? Math.min(2, 2200 / Math.max(w, h)) : 1;
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * scale);
+  c.height = Math.round(h * scale);
+  const ctx = c.getContext("2d", { willReadFrequently: true })!;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(source, 0, 0, c.width, c.height);
+  const im = ctx.getImageData(0, 0, c.width, c.height);
+  const d = im.data;
+  const hist = new Uint32Array(256);
+  for (let i = 0; i < d.length; i += 4) {
+    const g = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) | 0;
+    d[i] = g;
+    hist[g]++;
+  }
+  const total = d.length / 4;
+  let lo = 0;
+  let hi = 255;
+  for (let acc = 0; lo < 255 && (acc += hist[lo]) < total * 0.01; lo++);
+  for (let acc = 0; hi > 0 && (acc += hist[hi]) < total * 0.02; hi--);
+  const range = Math.max(40, hi - lo);
+  for (let i = 0; i < d.length; i += 4) {
+    const v = Math.max(0, Math.min(255, ((d[i] - lo) * 255) / range));
+    d[i] = d[i + 1] = d[i + 2] = v;
+  }
+  ctx.putImageData(im, 0, 0);
+  return c;
+}
+
 async function ocrImage(src: string | HTMLCanvasElement, report: (p: number, status: string) => void) {
   const worker = await getWorker();
+  try {
+    src = await enhanceForOcr(src);
+  } catch {
+    /* lukt verbeteren niet, dan gewoon het origineel lezen */
+  }
   onLog = report;
   try {
     const { data } = await worker.recognize(src);

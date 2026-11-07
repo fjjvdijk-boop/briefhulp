@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { answerQuestion, UserFacingError } from "../../../lib/server/claude";
 import { clientKey, rateLimit } from "../../../lib/server/ratelimit";
-import { LANGUAGES, type QuestionRequest } from "../../../lib/types";
+import type { QuestionRequest } from "../../../lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
         .filter((h) => typeof h?.q === "string" && typeof h?.a === "string")
         .map((h) => ({ q: h.q.slice(0, 600), a: h.a.slice(0, 3000) }))
     : [];
-  const language = LANGUAGES.some((l) => l.code === body.language) ? body.language : "nl";
+  const language = typeof body.language === "string" && /^[a-z]{2,3}$/.test(body.language) ? body.language : "nl";
 
   if (process.env.BRIEFHULP_DEMO === "1" || !process.env.ANTHROPIC_API_KEY) {
     await new Promise((r) => setTimeout(r, 1200));

@@ -3,65 +3,53 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "./Icon";
 import { daysUntil, downloadIcs, formatDateLong, googleCalendarUrl } from "../lib/client/calendar";
-import { LANGUAGES, type Analysis, type ExplainLanguage, type Urgency } from "../lib/types";
+import type { SavedDeadline } from "../lib/client/deadlines";
+import { useI18n } from "../lib/i18n/context";
+import { isRtl } from "../lib/i18n";
+import type { Dict } from "../lib/i18n/nl";
+import type { Analysis, Urgency } from "../lib/types";
 
-const URGENCY: Record<Urgency, { label: string; icon: string }> = {
-  rood: { label: "Snel actie nodig", icon: "alert" },
-  oranje: { label: "Actie nodig – u heeft nog tijd", icon: "clock" },
-  groen: { label: "Geen haast", icon: "check" },
-};
-
-const SPEECH_LANG: Record<ExplainLanguage, string> = {
-  nl: "nl-NL",
-  en: "en-GB",
-  tr: "tr-TR",
-  ar: "ar-SA",
-  pl: "pl-PL",
-  uk: "uk-UA",
-  ti: "ti-ER",
-  so: "so-SO",
-  es: "es-ES",
-};
+const URGENCY_ICON: Record<Urgency, string> = { rood: "alert", oranje: "clock", groen: "check" };
 
 interface Props {
   analysis: Analysis;
-  language: ExplainLanguage;
   mode: "lokaal" | "ai" | "demo" | "voorbeeld";
+  typeKey: string;
   letterText: string | null;
   onUpgrade?: () => void;
   onNew: () => void;
   onRetakePhoto: () => void;
+  onSaveDeadline: (d: Omit<SavedDeadline, "id" | "savedAt">) => void;
+  savedDeadlines: SavedDeadline[];
 }
 
-export function Result({ analysis: a, language, mode, letterText, onUpgrade, onNew, onRetakePhoto }: Props) {
+export function Result({ analysis: a, mode, typeKey, letterText, onUpgrade, onNew, onRetakePhoto, onSaveDeadline, savedDeadlines }: Props) {
+  const { t, lang, locale } = useI18n();
   const isExample = mode === "voorbeeld";
   const isDemo = mode === "demo";
-  const isLocal = mode === "lokaal";
-  const rtl = LANGUAGES.find((l) => l.code === language)?.rtl && (mode === "ai" || mode === "demo");
+  const isLocal = mode === "lokaal" || mode === "voorbeeld";
+  // AI-uitleg kan in elke taal zijn; de gratis uitleg is in de taal van de app.
+  const contentRtl = isLocal ? t.dir === "rtl" : isRtl(lang);
   const [done, setDone] = useState<boolean[]>(() => a.actions.map(() => false));
-  const u = URGENCY[a.urgency.level] ?? URGENCY.oranje;
+  useEffect(() => setDone(a.actions.map(() => false)), [a]);
+  const level: Urgency = a.urgency.level in URGENCY_ICON ? a.urgency.level : "oranje";
   const days = a.deadline.date ? daysUntil(a.deadline.date) : null;
-  const gcal = googleCalendarUrl(a);
+  const gcal = googleCalendarUrl(a, t);
   const [calAdded, setCalAdded] = useState(false);
   const telHref = a.contact.phone ? `tel:${a.contact.phone.replace(/[^\d+]/g, "")}` : null;
   const site = a.contact.website ? (a.contact.website.startsWith("http") ? a.contact.website : `https://${a.contact.website}`) : null;
-
-  const shareText = useMemo(() => buildShareText(a), [a]);
+  const shareText = useMemo(() => buildShareText(a, t, locale), [a, t, locale]);
+  const isSaved = savedDeadlines.some((d) => d.date === a.deadline.date && d.sender === a.sender.name);
 
   return (
-    <article className="screen result" dir={rtl ? "rtl" : undefined}>
-      {(isExample || isDemo) && (
-        <p className="demo-banner">
-          {isExample ? "Dit is een voorbeeld met een verzonnen brief." : "Demo-modus: dit is een voorbeelduitleg, niet uw eigen brief."}
-        </p>
-      )}
+    <article className="screen result">
+      {(isExample || isDemo) && <p className="demo-banner">{isExample ? t.result.exampleBanner : t.result.demoBanner}</p>}
 
       {isLocal && (
         <p className="local-banner">
           <Icon name="lock" size={20} />
           <span>
-            <strong>Snelle uitleg, gratis.</strong> Gemaakt op uw telefoon met vaste regels. Controleer bedragen en datums altijd op
-            de brief zelf.
+            <strong>{t.result.localBanner}</strong> {t.result.localBannerText}
           </span>
         </p>
       )}
@@ -69,22 +57,22 @@ export function Result({ analysis: a, language, mode, letterText, onUpgrade, onN
       {!a.is_letter || !a.readable ? (
         <div className="card card-warn" role="alert">
           <h2 className="card-title">
-            <Icon name="camera" /> {a.is_letter ? "De foto is niet goed te lezen" : "Dit lijkt geen brief"}
+            <Icon name="camera" /> {a.is_letter ? t.result.unreadable : t.result.notLetter}
           </h2>
-          <p>{a.photo_tip || "Probeer een nieuwe foto te maken. Leg de brief plat neer, bij goed licht."}</p>
+          <p>{a.photo_tip || t.result.unreadableTip}</p>
           <button className="btn btn-primary" onClick={onRetakePhoto}>
             <Icon name="camera" />
-            <span>Nieuwe foto maken</span>
+            <span>{t.result.retake}</span>
           </button>
         </div>
       ) : null}
 
-      <div className={`urgency urgency-${a.urgency.level}`} role="status">
+      <div className={`urgency urgency-${level}`} role="status">
         <div className="urgency-icon">
-          <Icon name={u.icon} size={34} />
+          <Icon name={URGENCY_ICON[level]} size={34} />
         </div>
-        <div>
-          <p className="urgency-label">{u.label}</p>
+        <div dir={contentRtl ? "rtl" : undefined}>
+          <p className="urgency-label">{t.result.urgency[level]}</p>
           <p className="urgency-reason">{a.urgency.reason}</p>
         </div>
       </div>
@@ -92,16 +80,15 @@ export function Result({ analysis: a, language, mode, letterText, onUpgrade, onN
       {a.scam_check.suspicious && (
         <div className="card card-scam" role="alert">
           <h2 className="card-title">
-            <Icon name="alert" /> Pas op: dit kan een nep-brief zijn
+            <Icon name="alert" /> {t.result.scamTitle}
           </h2>
-          <ul className="bullets">
+          <ul className="bullets" dir={contentRtl ? "rtl" : undefined}>
             {a.scam_check.signals.map((s) => (
               <li key={s}>{s}</li>
             ))}
           </ul>
           <p>
-            Betaal nog niet. Bel de organisatie zelf, via het nummer op hun officiële website. Twijfelt u? Bel de Fraudehelpdesk:{" "}
-            <a href="tel:0887867372">088 - 786 73 72</a>.
+            {t.result.scamAdvice} <a href="tel:0887867372">088 - 786 73 72</a>.
           </p>
         </div>
       )}
@@ -112,31 +99,42 @@ export function Result({ analysis: a, language, mode, letterText, onUpgrade, onN
         </p>
       )}
 
-      <header className="result-head">
+      <header className="result-head" dir={contentRtl ? "rtl" : undefined}>
         <p className="sender">
-          Van: <strong>{a.sender.name}</strong>
+          {t.result.from} <strong dir="auto">{a.sender.name}</strong>
         </p>
         <h1 className="headline">{a.headline}</h1>
         <p className="letter-type">{a.letter_type}</p>
       </header>
 
-      <ReadAloud analysis={a} lang={SPEECH_LANG[mode === "ai" || mode === "demo" ? language : "nl"]} />
+      <ReadAloud
+        label={t.result.readAloud}
+        stopLabel={t.result.stopReading}
+        lang={isLocal ? (t.code === "nl" ? "nl-NL" : t.code) : lang === "nl" ? "nl-NL" : lang}
+        parts={[
+          a.headline,
+          a.summary,
+          t.result.whatToDo,
+          ...a.actions.map((s, i) => `${i + 1}. ${s.step}. ${s.detail ?? ""}`),
+          a.deadline.date ? `${t.result.deadline}: ${formatDateLong(a.deadline.date, locale)}.` : "",
+        ]}
+      />
 
-      <section className="card">
-        <h2 className="card-title">In het kort</h2>
+      <section className="card" dir={contentRtl ? "rtl" : undefined}>
+        <h2 className="card-title">{t.result.inShort}</h2>
         <p className="summary">{a.summary}</p>
       </section>
 
       <section className="card card-actions">
-        <h2 className="card-title">Wat moet ik doen?</h2>
-        <ol className="checklist">
+        <h2 className="card-title">{t.result.whatToDo}</h2>
+        <ol className="checklist" dir={contentRtl ? "rtl" : undefined}>
           {a.actions.map((s, i) => (
             <li key={i} className={done[i] ? "is-done" : ""}>
               <button
                 className="check"
                 role="checkbox"
-                aria-checked={done[i]}
-                aria-label={`Stap ${i + 1} ${done[i] ? "gedaan" : "nog niet gedaan"}`}
+                aria-checked={!!done[i]}
+                aria-label={t.result.stepLabel(i + 1, !!done[i])}
                 onClick={() => setDone((d) => d.map((v, j) => (j === i ? !v : v)))}
               >
                 {done[i] ? <Icon name="check" size={26} /> : <span>{i + 1}</span>}
@@ -148,51 +146,61 @@ export function Result({ analysis: a, language, mode, letterText, onUpgrade, onN
             </li>
           ))}
         </ol>
-        {done.length > 0 && done.every(Boolean) && <p className="all-done">Goed gedaan! Alle stappen zijn klaar.</p>}
+        {done.length > 0 && done.every(Boolean) && <p className="all-done">{t.result.allDone}</p>}
       </section>
 
       {a.deadline.date && days !== null && (
         <section className={`card card-deadline ${days < 0 ? "overdue" : days <= 14 ? "soon" : ""}`}>
           <h2 className="card-title">
-            <Icon name="calendar" /> Uiterlijk
+            <Icon name="calendar" /> {t.result.deadline}
           </h2>
-          <p className="deadline-date">{formatDateLong(a.deadline.date)}</p>
+          <p className="deadline-date">{formatDateLong(a.deadline.date, locale)}</p>
           <p className="deadline-days">
-            {days < 0
-              ? `Deze datum is ${Math.abs(days)} ${Math.abs(days) === 1 ? "dag" : "dagen"} geleden. Neem zo snel mogelijk contact op.`
-              : days === 0
-                ? "Dat is vandaag!"
-                : days === 1
-                  ? "Dat is morgen!"
-                  : `Nog ${days} dagen.`}
+            {days < 0 ? t.result.daysAgo(-days) : days === 0 ? t.result.today : days === 1 ? t.result.tomorrow : t.result.daysLeft(days)}
           </p>
           {a.deadline.what && <p className="deadline-what">{a.deadline.what}</p>}
-          {a.deadline.is_estimate && (
-            <p className="hint">Deze datum is uitgerekend. Kijk ook zelf op de brief of hij klopt.</p>
-          )}
+          {a.deadline.is_estimate && <p className="hint">{t.result.estimated}</p>}
           {days >= 0 && (
             <div className="btn-row">
               <button
                 className="btn btn-primary"
                 onClick={() => {
-                  downloadIcs(a);
+                  downloadIcs(a, t);
                   setCalAdded(true);
                 }}
               >
                 <Icon name="calendar" />
-                <span>{calAdded ? "Opnieuw in agenda zetten" : "Zet in mijn agenda"}</span>
+                <span>{calAdded ? t.result.addAgain : t.result.addCalendar}</span>
               </button>
               {gcal && (
                 <a className="btn btn-secondary" href={gcal} target="_blank" rel="noopener noreferrer">
-                  <span>Google Agenda</span>
+                  <span>{t.result.googleCalendar}</span>
                 </a>
               )}
             </div>
           )}
-          {calAdded && (
-            <p className="hint">
-              Open het bestand om de afspraak op te slaan. U krijgt 3 dagen en 1 dag van tevoren een herinnering.
-            </p>
+          {calAdded && <p className="hint">{t.result.calendarHint}</p>}
+          {days >= 0 && !isExample && (
+            <div className="save-deadline">
+              <button
+                className={`btn btn-ghost ${isSaved ? "saved" : ""}`}
+                disabled={isSaved}
+                onClick={() =>
+                  onSaveDeadline({
+                    sender: a.sender.name,
+                    what: a.deadline.what || t.result.actionNeeded,
+                    date: a.deadline.date!,
+                    amount: a.payment.needed ? a.payment.amount : null,
+                  })
+                }
+              >
+                <Icon name={isSaved ? "check" : "plus"} />
+                <span>{isSaved ? t.result.savedDeadline : t.result.saveDeadline}</span>
+              </button>
+              <p className="hint">
+                <Icon name="lock" size={16} /> {t.result.saveNote}
+              </p>
+            </div>
           )}
         </section>
       )}
@@ -200,25 +208,25 @@ export function Result({ analysis: a, language, mode, letterText, onUpgrade, onN
       {a.payment.needed && (
         <section className="card card-pay">
           <h2 className="card-title">
-            <Icon name="euro" /> Betalen
+            <Icon name="euro" /> {t.result.pay}
           </h2>
           {a.payment.amount && <p className="pay-amount">{a.payment.amount}</p>}
           <dl className="pay-grid">
-            {a.payment.iban && <CopyRow label="Rekeningnummer (IBAN)" value={a.payment.iban} />}
-            {a.payment.to && <CopyRow label="Naam ontvanger" value={a.payment.to} />}
-            {a.payment.reference && <CopyRow label="Betalingskenmerk" value={a.payment.reference} important />}
+            {a.payment.iban && <CopyRow label={t.result.iban} value={a.payment.iban} iban />}
+            {a.payment.to && <CopyRow label={t.result.to} value={a.payment.to} />}
+            {a.payment.reference && <CopyRow label={t.result.reference} value={a.payment.reference} important />}
           </dl>
-          <p className="hint">Neem het betalingskenmerk precies over. Controleer de gegevens op de brief zelf.</p>
+          <p className="hint">{t.result.payHint}</p>
         </section>
       )}
 
       {a.amounts.length > 0 && (
         <section className="card">
-          <h2 className="card-title">Bedragen in de brief</h2>
+          <h2 className="card-title">{t.result.amounts}</h2>
           <ul className="amounts">
             {a.amounts.map((x, i) => (
               <li key={i}>
-                <span>{x.description}</span>
+                <span dir="auto">{x.description}</span>
                 <strong>{x.amount}</strong>
               </li>
             ))}
@@ -227,19 +235,19 @@ export function Result({ analysis: a, language, mode, letterText, onUpgrade, onN
       )}
 
       {a.if_you_do_nothing && (
-        <section className="card">
-          <h2 className="card-title">Wat gebeurt er als ik niets doe?</h2>
+        <section className="card" dir={contentRtl ? "rtl" : undefined}>
+          <h2 className="card-title">{t.result.ifNothing}</h2>
           <p>{a.if_you_do_nothing}</p>
         </section>
       )}
 
       {a.objection.possible && (
-        <section className="card">
-          <h2 className="card-title">Bent u het er niet mee eens?</h2>
+        <section className="card" dir={contentRtl ? "rtl" : undefined}>
+          <h2 className="card-title">{t.result.objection}</h2>
           {a.objection.how && <p>{a.objection.how}</p>}
           {a.objection.deadline && (
             <p>
-              <strong>Termijn:</strong> {a.objection.deadline}
+              <strong>{t.result.term}</strong> {a.objection.deadline}
             </p>
           )}
         </section>
@@ -247,33 +255,33 @@ export function Result({ analysis: a, language, mode, letterText, onUpgrade, onN
 
       {(telHref || site || a.contact.email) && (
         <section className="card">
-          <h2 className="card-title">Contact met {a.sender.name}</h2>
+          <h2 className="card-title">{t.result.contact(a.sender.name)}</h2>
           <div className="btn-col">
             {telHref && (
               <a className="btn btn-secondary" href={telHref}>
                 <Icon name="phone" />
-                <span>Bel {a.contact.phone}</span>
+                <span dir="ltr">{t.result.call(a.contact.phone!)}</span>
               </a>
             )}
             {site && (
               <a className="btn btn-secondary" href={site} target="_blank" rel="noopener noreferrer">
                 <Icon name="globe" />
-                <span>{a.contact.website}</span>
+                <span dir="ltr">{a.contact.website}</span>
               </a>
             )}
             {a.contact.email && (
               <a className="btn btn-secondary" href={`mailto:${a.contact.email}`}>
-                <span>{a.contact.email}</span>
+                <span dir="ltr">{a.contact.email}</span>
               </a>
             )}
           </div>
-          <p className="hint">Houd de brief bij de hand als u belt. Ze vragen vaak om een nummer van de brief.</p>
+          <p className="hint">{t.result.contactHint}</p>
         </section>
       )}
 
       {a.references.length > 0 && (
         <details className="card fold">
-          <summary className="card-title">Nummers op de brief</summary>
+          <summary className="card-title">{t.result.refs}</summary>
           <dl className="pay-grid">
             {a.references.map((r, i) => (
               <CopyRow key={i} label={r.label} value={r.value} />
@@ -284,11 +292,13 @@ export function Result({ analysis: a, language, mode, letterText, onUpgrade, onN
 
       {a.difficult_words.length > 0 && (
         <details className="card fold">
-          <summary className="card-title">Moeilijke woorden uitgelegd</summary>
-          <dl className="words">
+          <summary className="card-title">{t.result.words}</summary>
+          <dl className="words" dir={contentRtl ? "rtl" : undefined}>
             {a.difficult_words.map((w) => (
               <div key={w.word}>
-                <dt>{w.word}</dt>
+                <dt lang="nl" dir="ltr">
+                  {w.word}
+                </dt>
                 <dd>{w.meaning}</dd>
               </div>
             ))}
@@ -298,30 +308,33 @@ export function Result({ analysis: a, language, mode, letterText, onUpgrade, onN
 
       {onUpgrade && (
         <section className="card card-upgrade">
-          <h2 className="card-title">Wilt u een betere uitleg?</h2>
-          <p>Met de volledige uitleg leest slimme software (AI) de hele brief. U krijgt een uitleg in gewone taal, ook in andere talen, en u kunt vragen stellen.</p>
-          <p className="hint">Hiervoor wordt de foto beveiligd verstuurd naar Anthropic (Claude). Er wordt niets bewaard.</p>
+          <h2 className="card-title">{t.result.upgradeTitle}</h2>
+          <p>{t.result.upgradeText}</p>
+          <p className="hint">{t.result.upgradePrivacy}</p>
           <button className="btn btn-primary" onClick={onUpgrade}>
-            <span>Volledige uitleg</span>
+            <span>{t.result.upgradeButton}</span>
           </button>
         </section>
       )}
 
       {letterText && (
         <details className="card fold">
-          <summary className="card-title">Tekst van de brief</summary>
-          <p className="hint">Zo heeft uw telefoon de brief gelezen. Er kunnen leesfouten in zitten.</p>
-          <pre className="letter-text">{letterText}</pre>
+          <summary className="card-title">{t.result.letterText}</summary>
+          <p className="hint">{t.result.letterTextHint}</p>
+          <ReadAloud label={t.result.readLetter} stopLabel={t.result.stopReading} lang="nl-NL" parts={splitForSpeech(letterText)} small />
+          <pre className="letter-text" lang="nl" dir="ltr">
+            {letterText}
+          </pre>
         </details>
       )}
 
-      {!isLocal && <AskQuestion analysis={a} language={language} />}
+      {(mode === "ai" || mode === "demo") && <AskQuestion analysis={a} />}
 
       <section className="card card-help">
         <h2 className="card-title">
-          <Icon name="help" /> Hulp nodig?
+          <Icon name="help" /> {t.result.help}
         </h2>
-        <ul className="help-list">
+        <ul className="help-list" dir={contentRtl ? "rtl" : undefined}>
           {a.help.map((h) => (
             <li key={h.name}>
               <strong>{h.name}</strong>
@@ -331,37 +344,45 @@ export function Result({ analysis: a, language, mode, letterText, onUpgrade, onN
           ))}
           {!a.help.some((h) => /juridisch loket/i.test(h.name)) && (
             <li>
-              <strong>Het Juridisch Loket</strong>
-              <span>Gratis advies als u twijfelt wat u moet doen.</span>
+              <strong>{t.result.jlName}</strong>
+              <span>{t.result.jlWhy}</span>
               <HelpContact text="0800 - 8020" />
             </li>
           )}
           <li>
-            <strong>Iemand die u vertrouwt</strong>
-            <span>Laat de brief en deze uitleg zien aan familie, een buur of het sociaal wijkteam van uw gemeente.</span>
+            <strong>{t.result.trustedName}</strong>
+            <span>{t.result.trustedWhy}</span>
           </li>
         </ul>
       </section>
+
+      {!isExample && <Feedback mode={mode} senderType={a.sender.type} typeKey={typeKey} urgency={level} />}
 
       <div className="btn-col">
         <ShareButton text={shareText} />
         <button className="btn btn-ghost" onClick={() => window.print()}>
           <Icon name="print" />
-          <span>Afdrukken</span>
+          <span>{t.result.print}</span>
         </button>
         <button className="btn btn-primary" onClick={onNew}>
           <Icon name="camera" />
-          <span>Nog een brief uitleggen</span>
+          <span>{t.result.another}</span>
         </button>
       </div>
 
       <p className="disclaimer">
-        {isLocal ? "Deze uitleg is automatisch gemaakt met vaste regels en kan fouten of missende informatie bevatten." : "Deze uitleg is gemaakt door een computer en kan fouten bevatten."} Het is geen juridisch of financieel advies. Bij twijfel
-        geldt altijd wat er in de brief zelf staat. Uw foto en deze uitleg worden niet door ons bewaard: als u op &quot;Nog een
-        brief&quot; drukt of de app sluit, zijn ze weg.
+        {isLocal ? t.result.disclaimerLocal : t.result.disclaimerAI} {t.result.disclaimerEnd}
       </p>
     </article>
   );
+}
+
+function splitForSpeech(text: string) {
+  return text
+    .replace(/--- volgende bladzijde ---/g, ".")
+    .split(/\n{2,}/)
+    .map((p) => p.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
 }
 
 function HelpContact({ text }: { text: string }) {
@@ -369,24 +390,25 @@ function HelpContact({ text }: { text: string }) {
   const web = /^[\w.-]+\.(nl|com|org|eu)(\/\S*)?$/i.test(text.trim());
   if (phone)
     return (
-      <a className="help-link" href={`tel:${text.replace(/[^\d+]/g, "")}`}>
+      <a className="help-link" href={`tel:${text.replace(/[^\d+]/g, "")}`} dir="ltr">
         <Icon name="phone" size={20} /> {text}
       </a>
     );
   if (web)
     return (
-      <a className="help-link" href={`https://${text.trim()}`} target="_blank" rel="noopener noreferrer">
+      <a className="help-link" href={`https://${text.trim()}`} target="_blank" rel="noopener noreferrer" dir="ltr">
         <Icon name="globe" size={20} /> {text}
       </a>
     );
   return <span className="help-contact">{text}</span>;
 }
 
-function CopyRow({ label, value, important }: { label: string; value: string; important?: boolean }) {
+function CopyRow({ label, value, important, iban }: { label: string; value: string; important?: boolean; iban?: boolean }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(value.replace(/\s+/g, label.toLowerCase().includes("iban") ? "" : " ").trim());
+      await navigator.clipboard.writeText(iban ? value.replace(/\s+/g, "") : value.replace(/\s+/g, " ").trim());
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -397,21 +419,23 @@ function CopyRow({ label, value, important }: { label: string; value: string; im
     <div className={`copy-row ${important ? "important" : ""}`}>
       <dt>{label}</dt>
       <dd>
-        <span className="mono">{value}</span>
-        <button className="copy-btn" onClick={copy} aria-label={`${label} kopiëren`}>
+        <span className="mono" dir="ltr">
+          {value}
+        </span>
+        <button className="copy-btn" onClick={copy} aria-label={t.result.copyLabel(label)}>
           <Icon name={copied ? "check" : "copy"} size={22} />
-          <span>{copied ? "Gekopieerd" : "Kopieer"}</span>
+          <span>{copied ? t.result.copied : t.result.copy}</span>
         </button>
       </dd>
     </div>
   );
 }
 
-function ReadAloud({ analysis: a, lang }: { analysis: Analysis; lang: string }) {
+function ReadAloud({ label, stopLabel, lang, parts, small }: { label: string; stopLabel: string; lang: string; parts: string[]; small?: boolean }) {
   const [speaking, setSpeaking] = useState(false);
   const [supported, setSupported] = useState(false);
   useEffect(() => {
-    setSupported(typeof window !== "undefined" && "speechSynthesis" in window);
+    setSupported("speechSynthesis" in window);
     return () => {
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     };
@@ -425,22 +449,16 @@ function ReadAloud({ analysis: a, lang }: { analysis: Analysis; lang: string }) 
       setSpeaking(false);
       return;
     }
-    const parts = [
-      a.headline,
-      a.summary,
-      lang.startsWith("nl") ? "Wat moet u doen?" : "",
-      ...a.actions.map((s, i) => `${i + 1}. ${s.step}. ${s.detail ?? ""}`),
-      a.deadline.date && lang.startsWith("nl") ? `Uiterlijk ${formatDateLong(a.deadline.date)}.` : "",
-    ].filter(Boolean);
+    const list = parts.filter(Boolean);
     synth.cancel();
     const voices = synth.getVoices();
-    const voice = voices.find((v) => v.lang === lang) ?? voices.find((v) => v.lang.startsWith(lang.slice(0, 2)));
-    parts.forEach((text, i) => {
+    const voice = voices.find((v) => v.lang === lang) ?? voices.find((v) => v.lang.toLowerCase().startsWith(lang.slice(0, 2).toLowerCase()));
+    list.forEach((text, i) => {
       const utt = new SpeechSynthesisUtterance(text);
       utt.lang = lang;
       if (voice) utt.voice = voice;
       utt.rate = 0.9;
-      if (i === parts.length - 1) utt.onend = () => setSpeaking(false);
+      if (i === list.length - 1) utt.onend = () => setSpeaking(false);
       utt.onerror = () => setSpeaking(false);
       synth.speak(utt);
     });
@@ -448,16 +466,51 @@ function ReadAloud({ analysis: a, lang }: { analysis: Analysis; lang: string }) 
   };
 
   return (
-    <button className={`btn btn-listen ${speaking ? "on" : ""}`} onClick={toggle} aria-pressed={speaking}>
+    <button className={`btn btn-listen ${speaking ? "on" : ""} ${small ? "btn-small" : ""}`} onClick={toggle} aria-pressed={speaking}>
       <Icon name={speaking ? "stop" : "speaker"} />
-      <span>{speaking ? "Stop met voorlezen" : "Lees voor"}</span>
+      <span>{speaking ? stopLabel : label}</span>
     </button>
   );
 }
 
-const SUGGESTIONS = ["Wat als ik niet kan betalen?", "Moet ik dit echt doen?", "Wie kan mij helpen?"];
+function Feedback({ mode, senderType, typeKey, urgency }: { mode: string; senderType: string; typeKey: string; urgency: string }) {
+  const { t, lang } = useI18n();
+  const [sent, setSent] = useState(false);
+  const send = (good: boolean) => {
+    setSent(true);
+    fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ good, mode, sender: senderType, type: typeKey, urgency, lang }),
+    }).catch(() => {
+      /* geen internet: niet erg */
+    });
+  };
+  return (
+    <section className="feedback" aria-live="polite">
+      {sent ? (
+        <p>
+          <Icon name="check" size={20} /> {t.result.feedbackThanks}
+        </p>
+      ) : (
+        <>
+          <p>{t.result.feedbackQ}</p>
+          <div className="feedback-btns">
+            <button className="chip-btn" onClick={() => send(true)}>
+              👍 {t.result.yes}
+            </button>
+            <button className="chip-btn" onClick={() => send(false)}>
+              👎 {t.result.no}
+            </button>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
 
-function AskQuestion({ analysis, language }: { analysis: Analysis; language: ExplainLanguage }) {
+function AskQuestion({ analysis }: { analysis: Analysis }) {
+  const { t, lang } = useI18n();
   const [history, setHistory] = useState<{ q: string; a: string }[]>([]);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
@@ -473,10 +526,10 @@ function AskQuestion({ analysis, language }: { analysis: Analysis; language: Exp
       const res = await fetch("/api/vraag", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ analysis, question: text, language, history }),
+        body: JSON.stringify({ analysis, question: text, language: lang, history }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok || !json.answer) throw new Error(json.error || "Er ging iets mis. Probeer het opnieuw.");
+      if (!res.ok || !json.answer) throw new Error(json.error || t.error.generic);
       setHistory((h) => [...h, { q: text, a: json.answer }]);
       setQ("");
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
@@ -489,10 +542,10 @@ function AskQuestion({ analysis, language }: { analysis: Analysis; language: Exp
 
   return (
     <section className="card card-ask">
-      <h2 className="card-title">Heeft u nog een vraag?</h2>
+      <h2 className="card-title">{t.result.askTitle}</h2>
       {history.length === 0 && (
         <div className="chips">
-          {SUGGESTIONS.map((s) => (
+          {t.result.suggestions.map((s) => (
             <button key={s} className="chip" onClick={() => ask(s)} disabled={busy}>
               {s}
             </button>
@@ -502,14 +555,28 @@ function AskQuestion({ analysis, language }: { analysis: Analysis; language: Exp
       <div className="chat">
         {history.map((h, i) => (
           <div key={i} className="chat-pair">
-            <p className="bubble me">{h.q}</p>
-            <p className="bubble bot">{h.a}</p>
+            <p className="bubble me" dir="auto">
+              {h.q}
+            </p>
+            <p className="bubble bot" dir="auto">
+              {h.a}
+            </p>
           </div>
         ))}
-        {busy && <p className="bubble bot typing" aria-label="Antwoord wordt geschreven"><i /><i /><i /></p>}
+        {busy && (
+          <p className="bubble bot typing" aria-label={t.result.typing}>
+            <i />
+            <i />
+            <i />
+          </p>
+        )}
         <div ref={endRef} />
       </div>
-      {err && <p className="notice" role="alert">{err}</p>}
+      {err && (
+        <p className="notice" role="alert">
+          {err}
+        </p>
+      )}
       <form
         className="ask-form"
         onSubmit={(e) => {
@@ -518,18 +585,19 @@ function AskQuestion({ analysis, language }: { analysis: Analysis; language: Exp
         }}
       >
         <label htmlFor="vraag" className="sr-only">
-          Uw vraag
+          {t.result.askLabel}
         </label>
         <input
           id="vraag"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Typ uw vraag…"
+          placeholder={t.result.askPlaceholder}
           maxLength={600}
           enterKeyHint="send"
           autoComplete="off"
+          dir="auto"
         />
-        <button type="submit" className="send" disabled={busy || !q.trim()} aria-label="Vraag versturen">
+        <button type="submit" className="send" disabled={busy || !q.trim()} aria-label={t.result.askSend}>
           <Icon name="send" size={26} />
         </button>
       </form>
@@ -538,14 +606,15 @@ function AskQuestion({ analysis, language }: { analysis: Analysis; language: Exp
 }
 
 function ShareButton({ text }: { text: string }) {
+  const { t } = useI18n();
   const [msg, setMsg] = useState<string | null>(null);
   const share = async () => {
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Uitleg van mijn brief", text });
+        await navigator.share({ title: t.result.shareTitle, text });
       } else {
         await navigator.clipboard.writeText(text);
-        setMsg("De uitleg is gekopieerd. U kunt hem nu plakken in WhatsApp of een e-mail.");
+        setMsg(t.result.shareCopied);
       }
     } catch {
       /* geannuleerd */
@@ -555,30 +624,22 @@ function ShareButton({ text }: { text: string }) {
     <>
       <button className="btn btn-secondary" onClick={share}>
         <Icon name="share" />
-        <span>Deel met iemand die u helpt</span>
+        <span>{t.result.share}</span>
       </button>
       {msg && <p className="hint">{msg}</p>}
     </>
   );
 }
 
-function buildShareText(a: Analysis) {
-  const lines = [
-    `📄 Brief van ${a.sender.name}`,
-    a.headline,
-    "",
-    a.summary,
-    "",
-    "Wat moet ik doen?",
-    ...a.actions.map((s, i) => `${i + 1}. ${s.step}`),
-  ];
-  if (a.deadline.date) lines.push("", `⏰ Uiterlijk: ${formatDateLong(a.deadline.date)}`);
+function buildShareText(a: Analysis, t: Dict, locale: string) {
+  const lines = [`📄 ${t.result.shareHeader(a.sender.name)}`, a.headline, "", a.summary, "", t.result.whatToDo, ...a.actions.map((s, i) => `${i + 1}. ${s.step}`)];
+  if (a.deadline.date) lines.push("", `⏰ ${t.result.shareDeadline}: ${formatDateLong(a.deadline.date, locale)}`);
   if (a.payment.needed) {
-    lines.push("", `💶 Betalen: ${a.payment.amount ?? ""}`);
+    lines.push("", `💶 ${t.result.pay}: ${a.payment.amount ?? ""}`);
     if (a.payment.iban) lines.push(`IBAN: ${a.payment.iban}`);
-    if (a.payment.to) lines.push(`Naam: ${a.payment.to}`);
-    if (a.payment.reference) lines.push(`Kenmerk: ${a.payment.reference}`);
+    if (a.payment.to) lines.push(`${t.result.to}: ${a.payment.to}`);
+    if (a.payment.reference) lines.push(`${t.result.reference}: ${a.payment.reference}`);
   }
-  lines.push("", "(Uitleg door Briefhulp – geen juridisch of financieel advies)");
+  lines.push("", t.result.shareFooter);
   return lines.join("\n");
 }

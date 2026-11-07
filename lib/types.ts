@@ -63,18 +63,9 @@ export interface Analysis {
   help: { name: string; why: string; contact: string | null }[];
 }
 
-export type ExplainLanguage =
-  | "nl"
-  | "en"
-  | "tr"
-  | "ar"
-  | "pl"
-  | "uk"
-  | "ti"
-  | "so"
-  | "es";
+export type ExplainLanguage = string; // ISO 639-code, bijv. "nl", "ar", "ti"
 
-export const LANGUAGES: { code: ExplainLanguage; label: string; prompt: string; rtl?: boolean }[] = [
+export const LANGUAGES: { code: string; label: string; prompt: string; rtl?: boolean }[] = [
   { code: "nl", label: "Nederlands", prompt: "eenvoudig Nederlands op B1-niveau" },
   { code: "en", label: "English", prompt: "simple English (CEFR B1)" },
   { code: "tr", label: "Türkçe", prompt: "eenvoudig Turks (Türkçe, B1-niveau)" },

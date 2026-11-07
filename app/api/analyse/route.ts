@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { analyseLetter, UserFacingError } from "../../../lib/server/claude";
 import { clientKey, rateLimit } from "../../../lib/server/ratelimit";
 import { makeSample } from "../../../lib/sample";
-import { LANGUAGES, type AnalyseRequest } from "../../../lib/types";
+import type { AnalyseRequest } from "../../../lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
   }
   if (total > MAX_TOTAL_BASE64) return fail("De bestanden zijn te groot. Probeer minder bladzijden of een kleinere PDF.", 413);
 
-  const language = LANGUAGES.some((l) => l.code === body.language) ? body.language : "nl";
+  const language = typeof body.language === "string" && /^[a-z]{2,3}$/.test(body.language) ? body.language : "nl";
   const today = /^\d{4}-\d{2}-\d{2}$/.test(body.today) ? body.today : new Date().toISOString().slice(0, 10);
 
   // Demo-modus: zonder API-sleutel (of met BRIEFHULP_DEMO=1) een voorbeelduitleg teruggeven.
