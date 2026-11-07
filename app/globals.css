@@ -1943,3 +1943,20 @@ main {
     display: none;
   }
 }
+
+/* ---------- Automatisch vertalen ---------- */
+.translate-art {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--primary-soft);
+  color: var(--primary);
+  animation: spin 6s linear infinite;
+}
+.card-translate,
+.auto-card {
+  border: 2px dashed var(--primary);
+}

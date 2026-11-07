@@ -12,11 +12,12 @@ import { loadDeadlines, removeDeadline, saveDeadline, type SavedDeadline } from 
 import { readLetter, type ReadProgress } from "../lib/client/ocr";
 import { explainLocally } from "../lib/client/rules";
 import { sampleLetterText } from "../lib/sample";
-import { getDict, locale as toLocale } from "../lib/i18n";
+import { getDict, isBuiltIn, isRtl, locale as toLocale, type Dict, type LangInfo } from "../lib/i18n";
+import { dictFromTranslation, loadCachedTranslation, translateApp } from "../lib/i18n/autotranslate";
 import { I18nProvider, useI18n } from "../lib/i18n/context";
 import type { Analysis } from "../lib/types";
 
-type Screen = "language" | "welcome" | "home" | "pages" | "loading" | "result" | "error";
+type Screen = "language" | "translating" | "welcome" | "home" | "pages" | "loading" | "result" | "error";
 export type ResultMode = "lokaal" | "ai" | "demo" | "voorbeeld";
 
 const MAX_PAGES = 6;
@@ -24,6 +25,8 @@ const PREF_KEY = "briefhulp:prefs:v2";
 
 interface Prefs {
   lang: string | null;
+  langName?: string; // naam van een niet-ingebouwde taal
+  langRtl?: boolean;
   onboarded: boolean;
   largeText: boolean;
   installDismissed: boolean;
@@ -69,6 +72,8 @@ export default function BriefApp() {
   const [installEvent, setInstallEvent] = useState<InstallPromptEvent | null>(null);
   const [isIos, setIsIos] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [autoDict, setAutoDict] = useState<Dict | null>(null);
+  const [transProgress, setTransProgress] = useState(0);
   const cameraOpenRef = useRef(false);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -76,14 +81,19 @@ export default function BriefApp() {
   const abortRef = useRef<AbortController | null>(null);
 
   const lang = prefs.lang ?? "nl";
-  const t = getDict(lang);
+  const t = !isBuiltIn(lang) && autoDict ? autoDict : getDict(lang);
   const uiLang = t.code === "en" && lang !== "en" ? "en" : lang;
-  const loc = toLocale(uiLang);
+  const notTranslated = !isBuiltIn(lang) && !autoDict && !!prefs.lang;
+  const loc = safeLocale(toLocale(uiLang));
 
   // ---------- Opstarten ----------
   useEffect(() => {
     const p = loadPrefs();
     setPrefs(p);
+    if (p.lang && !isBuiltIn(p.lang)) {
+      const cached = loadCachedTranslation(p.lang);
+      if (cached) setAutoDict(dictFromTranslation(p.lang, p.langName ?? p.lang, p.langRtl ?? isRtl(p.lang), cached));
+    }
     setDeadlines(loadDeadlines());
     if (!p.lang) setScreen("language");
     else if (!p.onboarded) setScreen("welcome");
@@ -290,14 +300,36 @@ export default function BriefApp() {
     window.scrollTo({ top: 0 });
   };
 
-  const chooseLanguage = (code: string) => {
-    const wasResult = screen === "language" && analysis;
-    updatePrefs({ lang: code });
+  const chooseLanguage = async (code: string, info: LangInfo | null = null, autoTranslate = false) => {
+    const fromResult = !!analysis;
+    const name = info ? info.n ?? info.en : undefined;
+    const rtl = info ? !!info.rtl || isRtl(code) : undefined;
+    updatePrefs({ lang: code, langName: name, langRtl: rtl });
+    let nextDict: Dict = getDict(code);
+    if (!isBuiltIn(code)) {
+      const cached = loadCachedTranslation(code);
+      if (cached) {
+        nextDict = dictFromTranslation(code, name ?? code, !!rtl, cached);
+      } else if (autoTranslate) {
+        setTransProgress(0);
+        setScreen("translating");
+        try {
+          const flat = await translateApp(code, setTransProgress);
+          nextDict = dictFromTranslation(code, name ?? code, !!rtl, flat);
+        } catch (e) {
+          console.error(e);
+          nextDict = getDict("en");
+        }
+      }
+      setAutoDict(nextDict.code === code ? nextDict : null);
+    } else {
+      setAutoDict(null);
+    }
     if (!prefs.onboarded) setScreen("welcome");
-    else if (wasResult && mode !== "ai" && mode !== "demo" && letterText) {
+    else if (fromResult && mode !== "ai" && mode !== "demo" && letterText) {
       // De gratis uitleg meteen opnieuw maken in de nieuwe taal.
-      const nt = getDict(code);
-      const r = explainLocally(letterText, 96, localToday(), nt, toLocale(nt.code === "en" && code !== "en" ? "en" : code));
+      const loc2 = nextDict.code === code ? toLocale(code) : "en";
+      const r = explainLocally(letterText, 96, localToday(), nextDict, safeLocale(loc2));
       setAnalysis(r.analysis);
       setScreen("result");
     } else setScreen(analysis ? "result" : pages.length ? "pages" : "home");
@@ -306,12 +338,12 @@ export default function BriefApp() {
 
   const errorText =
     errorKey && errorKey in t.error ? (t.error as Record<string, string>)[errorKey] : errorKey || t.error.generic;
-  const onboardingScreen = screen === "language" || screen === "welcome";
+  const onboardingScreen = screen === "language" || screen === "welcome" || screen === "translating";
 
   if (!ready) return <div className="app" aria-busy="true" />;
 
   return (
-    <I18nProvider lang={lang}>
+    <I18nProvider lang={lang} dict={t}>
       <div className="app">
         {/* Verborgen bestand-kiezers. capture="environment" opent direct de achtercamera. */}
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => addFiles(e.target.files)} />
@@ -370,6 +402,26 @@ export default function BriefApp() {
         <main id="main">
           {screen === "language" && <LanguageScreen current={prefs.lang} aiAvailable={aiAvailable} onChoose={chooseLanguage} />}
 
+          {screen === "translating" && (
+            <section className="screen center" aria-live="polite" aria-busy="true">
+              <div className="translate-art" aria-hidden="true">
+                <Icon name="globe" size={64} />
+              </div>
+              <h1 className="title" dir={prefs.langRtl ? "rtl" : "ltr"}>
+                {prefs.langName ?? lang}
+              </h1>
+              <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(transProgress * 100)}>
+                <div className="progress-bar" style={{ width: `${Math.max(4, transProgress * 100)}%` }} />
+              </div>
+              <p className="lead" lang="en">
+                Translating Briefhulp on your phone… {Math.round(transProgress * 100)}%
+              </p>
+              <p className="hint" lang="nl">
+                Briefhulp wordt op uw telefoon vertaald. Dit gebeurt maar één keer.
+              </p>
+            </section>
+          )}
+
           {screen === "welcome" && (
             <Welcome
               onStart={() => {
@@ -402,6 +454,22 @@ export default function BriefApp() {
                 <p className="notice" role="alert">
                   {notice}
                 </p>
+              )}
+
+              {notTranslated && (
+                <div className="card card-translate" lang="en">
+                  <h2 className="card-title">
+                    <Icon name="globe" /> {prefs.langName ?? lang}
+                  </h2>
+                  <p>
+                    Your phone cannot translate Briefhulp into this language by itself, so the app is shown in English.
+                    {aiAvailable ? " The full explanation (AI) will be written in your language." : ""}
+                  </p>
+                  <p className="hint">
+                    Tip: use your browser&apos;s translate button. Chrome: ⋮ → Translate. Safari: aA → Translate. Note: the browser
+                    then sends the text to its translation service.
+                  </p>
+                </div>
               )}
 
               {deadlines.length > 0 && <MyDeadlines items={deadlines} onDone={(id) => setDeadlines(removeDeadline(id))} />}
@@ -600,6 +668,15 @@ export default function BriefApp() {
       </div>
     </I18nProvider>
   );
+}
+
+function safeLocale(loc: string) {
+  try {
+    new Intl.DateTimeFormat(loc);
+    return loc;
+  } catch {
+    return "en";
+  }
 }
 
 function Welcome({ onStart }: { onStart: () => void }) {

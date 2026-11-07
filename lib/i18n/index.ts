@@ -14,6 +14,15 @@ import { pt } from "./pt";
 
 export type { Dict };
 
+/** Eén taal uit de complete lijst (zie scripts/make-languages.mjs). */
+export interface LangInfo {
+  c: string; // taalcode
+  en: string; // Engelse naam
+  n?: string; // naam in de taal zelf
+  nl?: string; // Nederlandse naam
+  rtl?: number;
+}
+
 /** Talen die helemaal zijn ingebouwd: de hele app én de gratis uitleg, offline en gratis. */
 export const BUILT_IN: Record<string, Lang> = { nl, en, ar, tr, pl, uk, ru, ro, es, fr, fa, so, pt };
 export const BUILT_IN_ORDER = ["nl", "en", "ar", "tr", "pl", "uk", "ru", "ro", "es", "fr", "fa", "so", "pt"];
@@ -58,9 +67,15 @@ export function getDict(code: string): Dict {
   return merge(en, lang as Partial<Dict>);
 }
 
-const RTL = new Set(["ar", "fa", "he", "ur", "ps", "yi", "dv", "ug", "ckb", "sd", "prs"]);
+const RTL = new Set(["ar", "fa", "he", "ur", "ps", "yi", "dv", "ug", "ckb", "sd", "prs", "syr", "aii", "arc", "ks", "ug", "nqo", "ff-Adlm"]);
 export function isRtl(code: string) {
-  return RTL.has(code);
+  if (RTL.has(code)) return true;
+  try {
+    const script = new Intl.Locale(code).maximize().script ?? "";
+    return ["Arab", "Hebr", "Thaa", "Syrc", "Nkoo", "Adlm", "Rohg"].includes(script);
+  } catch {
+    return false;
+  }
 }
 
 /** Naam van een taal in die taal zelf ("Deutsch", "日本語"), met de Engelse naam als reserve. */

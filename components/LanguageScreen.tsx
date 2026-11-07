@@ -1,63 +1,102 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "./Icon";
-import {
-  ALL_LANGUAGE_CODES,
-  BUILT_IN,
-  BUILT_IN_ORDER,
-  EXTRA_LANGUAGE_CODES,
-  englishName,
-  getDict,
-  isBuiltIn,
-  isRtl,
-  nativeName,
-} from "../lib/i18n";
+import { BUILT_IN, BUILT_IN_ORDER, englishName, getDict, isBuiltIn, isRtl, type LangInfo } from "../lib/i18n";
+import { canAutoTranslate } from "../lib/i18n/autotranslate";
 
 interface Props {
   current: string | null;
   aiAvailable: boolean;
-  onChoose: (code: string) => void;
+  onChoose: (code: string, info: LangInfo | null, autoTranslate: boolean) => void;
 }
 
-/** Eerste scherm: kies uw taal. Titel staat in de taal van de telefoon én in het Nederlands en Engels. */
+function dutchName(c: string) {
+  try {
+    return new Intl.DisplayNames(["nl"], { type: "language" }).of(c);
+  } catch {
+    return undefined;
+  }
+}
+
+const norm = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+
+/** Eerste scherm: kies uw taal. Alle 639 talen van de Unicode-taaldatabase zijn te kiezen. */
 export function LanguageScreen({ current, aiAvailable, onChoose }: Props) {
   const [q, setQ] = useState("");
-  const [picked, setPicked] = useState<string | null>(null);
+  const [all, setAll] = useState<LangInfo[]>([]);
+  const [picked, setPicked] = useState<LangInfo | null>(null);
+  const [auto, setAuto] = useState<"checking" | "yes" | "no">("checking");
 
-  const others = useMemo(() => {
-    const codes = [...ALL_LANGUAGE_CODES, ...EXTRA_LANGUAGE_CODES].filter((c) => !isBuiltIn(c));
-    return codes
-      .map((code) => ({ code, native: nativeName(code), english: englishName(code) }))
-      .filter((l) => l.native && l.native !== l.code)
-      .sort((a, b) => a.english.localeCompare(b.english));
+  useEffect(() => {
+    import("../lib/i18n/languages.json").then((m) => setAll((m.default as LangInfo[]).filter((l) => !isBuiltIn(l.c))));
   }, []);
 
-  const query = q.trim().toLowerCase();
-  const match = (code: string, a: string, b: string) =>
-    !query || a.toLowerCase().includes(query) || b.toLowerCase().includes(query) || code === query;
-  const builtIn = BUILT_IN_ORDER.filter((c) => match(c, BUILT_IN[c].name, englishName(c)));
-  const more = others.filter((l) => match(l.code, l.native, l.english));
+  useEffect(() => {
+    if (!picked) return;
+    setAuto("checking");
+    canAutoTranslate(picked.c).then((ok) => setAuto(ok ? "yes" : "no"));
+  }, [picked]);
+
+  const query = norm(q.trim());
+  const match = (...names: (string | undefined)[]) => !query || names.some((n) => n && norm(n).includes(query));
+  const builtIn = BUILT_IN_ORDER.filter((c) => match(BUILT_IN[c].name, englishName(c), c, dutchName(c)));
+  const more = useMemo(() => all.filter((l) => match(l.n, l.en, l.nl, l.c)), [all, query]); // eslint-disable-line react-hooks/exhaustive-deps
   const titleDict = current ? getDict(current) : null;
 
   if (picked) {
-    const t = getDict(picked);
+    const name = picked.n ?? picked.en;
+    const rtl = !!picked.rtl || isRtl(picked.c);
     return (
       <section className="screen lang-screen">
-        <h1 className="title" lang={picked}>
-          {nativeName(picked)}
+        <h1 className="title" lang={picked.c} dir={rtl ? "rtl" : "ltr"}>
+          {name}
         </h1>
-        <p className="notice" lang="en">
-          <Icon name="info" size={22} />
-          <span>{aiAvailable ? t.onboarding.moreNoteAI : t.onboarding.moreNoteFree}</span>
+        <p className="lead">
+          {picked.en}
+          {picked.nl && picked.nl !== picked.en ? ` · ${picked.nl}` : ""}
         </p>
-        <button className="btn btn-primary btn-huge" onClick={() => onChoose(picked)}>
-          <Icon name="check" size={32} />
-          <span>OK</span>
-        </button>
+
+        {auto === "checking" && <p className="hint">…</p>}
+
+        {auto === "yes" && (
+          <>
+            <div className="card auto-card">
+              <h2 className="card-title">
+                <Icon name="globe" /> Translate Briefhulp into {name}
+              </h2>
+              <p>Your phone can translate the whole app into this language itself. This is free and private: nothing is sent to a server. It takes a minute, only once.</p>
+              <p className="hint" lang="nl">
+                Uw telefoon kan de hele app zelf naar deze taal vertalen. Gratis en privé, één keer.
+              </p>
+            </div>
+            <button className="btn btn-primary btn-huge" onClick={() => onChoose(picked.c, picked, true)}>
+              <Icon name="check" size={32} />
+              <span>OK</span>
+            </button>
+          </>
+        )}
+
+        {auto === "no" && (
+          <>
+            <p className="notice" lang="en">
+              <Icon name="info" size={22} />
+              <span>{aiAvailable ? getDict("en").onboarding.moreNoteAI : getDict("en").onboarding.moreNoteFree}</span>
+            </p>
+            <button className="btn btn-primary btn-huge" onClick={() => onChoose(picked.c, picked, false)}>
+              <Icon name="check" size={32} />
+              <span>OK</span>
+            </button>
+          </>
+        )}
+
         <button className="btn btn-ghost" onClick={() => setPicked(null)}>
           <Icon name="back" />
-          <span>{t.app.back}</span>
+          <span>Back · Terug</span>
         </button>
       </section>
     );
@@ -90,7 +129,7 @@ export function LanguageScreen({ current, aiAvailable, onChoose }: Props) {
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Zoek / Search…"
+          placeholder="Zoek / Search / بحث / Ara…"
           autoComplete="off"
           enterKeyHint="search"
         />
@@ -102,7 +141,7 @@ export function LanguageScreen({ current, aiAvailable, onChoose }: Props) {
             <li key={c}>
               <button
                 className={`lang-btn ${current === c ? "on" : ""}`}
-                onClick={() => onChoose(c)}
+                onClick={() => onChoose(c, null, false)}
                 lang={c}
                 dir={isRtl(c) ? "rtl" : "ltr"}
                 aria-pressed={current === c}
@@ -120,27 +159,25 @@ export function LanguageScreen({ current, aiAvailable, onChoose }: Props) {
         </ul>
       )}
 
-      {more.length > 0 && (
-        <details className="more-langs" open={query.length > 0}>
-          <summary>
-            <span>Meer talen · More languages</span>
-            <span className="count">{others.length}</span>
-          </summary>
-          <ul className="lang-list" role="list">
-            {more.map((l) => (
-              <li key={l.code}>
-                <button className={`lang-row ${current === l.code ? "on" : ""}`} onClick={() => setPicked(l.code)} lang={l.code}>
-                  <span dir={isRtl(l.code) ? "rtl" : "ltr"}>{l.native}</span>
-                  <span className="lang-en" lang="en">
-                    {l.english}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-      {builtIn.length === 0 && more.length === 0 && <p className="hint">—</p>}
+      <details className="more-langs" open={query.length > 0}>
+        <summary>
+          <span>Alle talen · All languages</span>
+          <span className="count">{all.length || "…"}</span>
+        </summary>
+        <ul className="lang-list" role="list">
+          {more.slice(0, query ? 200 : 1000).map((l) => (
+            <li key={l.c}>
+              <button className={`lang-row ${current === l.c ? "on" : ""}`} onClick={() => setPicked(l)} lang={l.c}>
+                <span dir={l.rtl ? "rtl" : "ltr"}>{l.n ?? l.en}</span>
+                <span className="lang-en" lang="en">
+                  {l.n ? l.en : l.nl && l.nl !== l.en ? l.nl : ""}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </details>
+      {builtIn.length === 0 && more.length === 0 && all.length > 0 && <p className="hint">—</p>}
     </section>
   );
 }

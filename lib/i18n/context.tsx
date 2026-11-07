@@ -11,9 +11,16 @@ interface I18n {
 
 const Ctx = createContext<I18n>({ lang: "nl", t: getDict("nl"), locale: "nl-NL" });
 
-export function I18nProvider({ lang, children }: { lang: string; children: React.ReactNode }) {
-  const t = getDict(lang);
-  return <Ctx.Provider value={{ lang, t, locale: locale(t.code === "en" && lang !== "en" ? "en" : lang) }}>{children}</Ctx.Provider>;
+export function I18nProvider({ lang, dict, children }: { lang: string; dict?: Dict; children: React.ReactNode }) {
+  const t = dict ?? getDict(lang);
+  // Datums en bedragen in de taal van de teksten; valt de browser terug, dan Engels.
+  let loc = locale(t.code === "en" && lang !== "en" ? "en" : lang);
+  try {
+    new Intl.DateTimeFormat(loc);
+  } catch {
+    loc = "en";
+  }
+  return <Ctx.Provider value={{ lang, t, locale: loc }}>{children}</Ctx.Provider>;
 }
 
 export const useI18n = () => useContext(Ctx);
