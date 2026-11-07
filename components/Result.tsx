@@ -53,16 +53,17 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
 
   return (
     <article className="screen result">
-      {(isExample || isDemo) && <p className="demo-banner">{isExample ? t.result.exampleBanner : t.result.demoBanner}</p>}
-
-      {isLocal && (
-        <p className="local-banner">
-          <Icon name="lock" size={20} />
-          <span>
-            <strong>{t.result.localBanner}</strong> {t.result.localBannerText}
-          </span>
-        </p>
-      )}
+      <div className="result-notes">
+        {(isExample || isDemo) && <span className="note-pill note-yellow">{isExample ? t.result.exampleBanner : t.result.demoBanner}</span>}
+        {isLocal && (
+          <details className="note-pill note-green">
+            <summary>
+              <Icon name="lock" size={16} /> {t.result.localBanner}
+            </summary>
+            <span>{t.result.localBannerText}</span>
+          </details>
+        )}
+      </div>
 
       {!a.is_letter || !a.readable ? (
         <div className="card card-warn" role="alert">
@@ -77,15 +78,72 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
         </div>
       ) : null}
 
-      <div className={`urgency urgency-${level}`} role="status">
-        <div className="urgency-icon">
-          <Icon name={URGENCY_ICON[level]} size={34} />
+      <section className={`summary-card u-${level}`} aria-labelledby="headline">
+        <div className="summary-strip" role="status">
+          <span className="strip-icon">
+            <Icon name={URGENCY_ICON[level]} size={22} />
+          </span>
+          <div dir={contentRtl ? "rtl" : undefined}>
+            <strong>{t.result.urgency[level]}</strong>
+            <span>{a.urgency.reason}</span>
+          </div>
         </div>
-        <div dir={contentRtl ? "rtl" : undefined}>
-          <p className="urgency-label">{t.result.urgency[level]}</p>
-          <p className="urgency-reason">{a.urgency.reason}</p>
+        <div className="summary-body" dir={contentRtl ? "rtl" : undefined}>
+          <div className="sender-row">
+            <span className="avatar" aria-hidden="true">
+              {initials(a.sender.name)}
+            </span>
+            <div>
+              <span className="sender-label">{t.result.from}</span>
+              <strong dir="auto">{a.sender.name.replace(/\s*\(namens .*\)$/, "")}</strong>
+              {/\(namens (.*)\)$/.test(a.sender.name) && (
+                <span className="sender-label" dir="auto">
+                  {a.sender.name.match(/\((namens .*)\)$/)![1]}
+                </span>
+              )}
+            </div>
+          </div>
+          <h1 className="headline" id="headline">
+            {a.headline}
+          </h1>
+          <p className="letter-type">{a.letter_type}</p>
+          {(a.payment.needed && a.payment.amount) || (a.deadline.date && days !== null) ? (
+            <div className="facts">
+              {a.payment.needed && a.payment.amount && (
+                <div className="fact">
+                  <span className="fact-label">
+                    <Icon name="euro" size={16} /> {t.result.pay}
+                  </span>
+                  <strong className="fact-value">{a.payment.amount}</strong>
+                </div>
+              )}
+              {a.deadline.date && days !== null && (
+                <div className={`fact ${days <= 14 ? "fact-urgent" : ""}`}>
+                  <span className="fact-label">
+                    <Icon name="calendar" size={16} /> {t.result.deadline}
+                  </span>
+                  <strong className="fact-value">{shortDate(a.deadline.date, locale)}</strong>
+                  <span className="fact-sub">
+                    {days < 0 ? t.result.daysAgo(-days).split(".")[0] : days === 0 ? t.result.today : days === 1 ? t.result.tomorrow : t.result.daysLeft(days)}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : null}
+          <ReadAloud
+            label={t.result.readAloud}
+            stopLabel={t.result.stopReading}
+            lang={isLocal ? (t.code === "nl" ? "nl-NL" : t.code) : lang === "nl" ? "nl-NL" : lang}
+            parts={[
+              a.headline,
+              a.summary,
+              t.result.whatToDo,
+              ...a.actions.map((s, i) => `${i + 1}. ${s.step}. ${s.detail ?? ""}`),
+              a.deadline.date ? `${t.result.deadline}: ${formatDateLong(a.deadline.date, locale)}.` : "",
+            ]}
+          />
         </div>
-      </div>
+      </section>
 
       {a.scam_check.suspicious && (
         <div className="card card-scam" role="alert">
@@ -108,27 +166,6 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
           <Icon name="info" size={22} /> {a.photo_tip}
         </p>
       )}
-
-      <header className="result-head" dir={contentRtl ? "rtl" : undefined}>
-        <p className="sender">
-          {t.result.from} <strong dir="auto">{a.sender.name}</strong>
-        </p>
-        <h1 className="headline">{a.headline}</h1>
-        <p className="letter-type">{a.letter_type}</p>
-      </header>
-
-      <ReadAloud
-        label={t.result.readAloud}
-        stopLabel={t.result.stopReading}
-        lang={isLocal ? (t.code === "nl" ? "nl-NL" : t.code) : lang === "nl" ? "nl-NL" : lang}
-        parts={[
-          a.headline,
-          a.summary,
-          t.result.whatToDo,
-          ...a.actions.map((s, i) => `${i + 1}. ${s.step}. ${s.detail ?? ""}`),
-          a.deadline.date ? `${t.result.deadline}: ${formatDateLong(a.deadline.date, locale)}.` : "",
-        ]}
-      />
 
       <nav className="tabs" role="tablist" aria-label={t.result.inShort}>
         {tabs.map((k) => (
@@ -427,6 +464,21 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
       </p>
     </article>
   );
+}
+
+function initials(name: string) {
+  const generic = /^(incassobureau|incasso|gemeente|waterschap|dienst|stichting|gerechtsdeurwaarder|deurwaarderskantoor|zorgverzekeraar|b\.?v\.?|n\.?v\.?|de|het|van|der|en|&)$/i;
+  const words = name
+    .replace(/\(.*\)/, "")
+    .split(/[\s,/-]+/)
+    .filter((w) => /^[A-Za-zÀ-ÿ]/.test(w) && !generic.test(w));
+  const pick = words.length ? words : name.split(/\s+/);
+  return ((pick[0]?.[0] ?? "?") + (pick[1]?.[0] ?? "")).toUpperCase();
+}
+
+function shortDate(iso: string, locale: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(locale, { day: "numeric", month: "long" });
 }
 
 function splitForSpeech(text: string) {

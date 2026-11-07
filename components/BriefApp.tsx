@@ -6,6 +6,7 @@ import { Icon } from "./Icon";
 import { Result } from "./Result";
 import { LanguageScreen } from "./LanguageScreen";
 import { CameraScreen } from "./CameraScreen";
+import { HeroArt } from "./HeroArt";
 import { FileProblem, preparePage, type PreparedPage } from "../lib/client/image";
 import { daysUntil, formatDateLong, localToday } from "../lib/client/calendar";
 import { loadDeadlines, removeDeadline, saveDeadline, type SavedDeadline } from "../lib/client/deadlines";
@@ -282,7 +283,6 @@ export default function BriefApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, lang]);
 
-  const [examplesOpen, setExamplesOpen] = useState(false);
   const showExample = (text: string = sampleLetterText()) => {
     const r = explainLocally(text, 96, localToday(), t, loc);
     setAnalysis(r.analysis);
@@ -437,21 +437,47 @@ export default function BriefApp() {
 
           {screen === "home" && (
             <section className="screen home">
-              <h1 className="hero-title">
-                {t.home.title1}
-                <br />
-                <span>{t.home.title2}</span>
-              </h1>
-              <p className="hero-sub">{t.home.sub}</p>
+              <div className="hero">
+                <div className="hero-text">
+                  <h1 className="hero-title">
+                    {t.home.title1}
+                    <br />
+                    <span>{t.home.title2}</span>
+                  </h1>
+                  <p className="hero-sub">{t.home.sub}</p>
+                  <ul className="trust" aria-label={t.app.tagline}>
+                    <li>
+                      <Icon name="euro" size={18} /> {t.onboarding.freeTitle}
+                    </li>
+                    <li>
+                      <Icon name="lock" size={18} /> {t.onboarding.privateTitle}
+                    </li>
+                    <li>
+                      <Icon name="globe" size={18} /> 600+
+                    </li>
+                  </ul>
+                </div>
+                <HeroArt />
+              </div>
 
-              <button className="btn btn-primary btn-huge" onClick={openCamera} disabled={busyFile}>
-                <Icon name="camera" size={40} />
-                <span>{busyFile ? t.home.wait : t.home.takePhoto}</span>
-              </button>
-              <button className="btn btn-secondary" onClick={() => fileRef.current?.click()} disabled={busyFile}>
-                <Icon name="image" />
-                <span>{t.home.choose}</span>
-              </button>
+              <div className="cta-card">
+                <div className="cta-art" aria-hidden="true">
+                  <HeroArt />
+                </div>
+                <button className="btn btn-primary btn-huge cta-main" onClick={openCamera} disabled={busyFile}>
+                  <span className="cta-icon">
+                    <Icon name="camera" size={34} />
+                  </span>
+                  <span>{busyFile ? t.home.wait : t.home.takePhoto}</span>
+                </button>
+                <button className="btn btn-secondary" onClick={() => fileRef.current?.click()} disabled={busyFile}>
+                  <Icon name="image" />
+                  <span>{t.home.choose}</span>
+                </button>
+                <p className="cta-note">
+                  <Icon name="lock" size={16} /> {t.pages.freeHint}
+                </p>
+              </div>
 
               {notice && (
                 <p className="notice" role="alert">
@@ -503,10 +529,17 @@ export default function BriefApp() {
                 </div>
               )}
 
-              <ul className="promise">
-                {[t.home.promise1, t.home.promise2, t.home.promise3].map((p) => (
-                  <li key={p}>
-                    <Icon name="check" size={22} /> {p}
+              <ul className="features">
+                {[
+                  { icon: "info", text: t.home.promise1 },
+                  { icon: "check", text: t.home.promise2 },
+                  { icon: "calendar", text: t.home.promise3 },
+                ].map((f) => (
+                  <li key={f.text}>
+                    <span className="feature-icon">
+                      <Icon name={f.icon} size={24} />
+                    </span>
+                    <span>{f.text}</span>
                   </li>
                 ))}
               </ul>
@@ -518,15 +551,13 @@ export default function BriefApp() {
                 </p>
               </div>
 
-              <button className="link-btn" onClick={() => setExamplesOpen((o) => !o)} aria-expanded={examplesOpen}>
-                {t.home.example}
-              </button>
-              {examplesOpen && (
+              <h2 className="section-title">{t.home.example}</h2>
+              {(
                 <div className="examples">
                   {sampleLetters().map((ex) => (
                     <button key={ex.id} className="example-chip" onClick={() => showExample(ex.text)}>
                       <span aria-hidden="true">{ex.emoji}</span>
-                      <span>{ex.id === "nep" ? t.result.scamTitle.split(":")[0] : t.r.types[ex.typeKey as keyof typeof t.r.types]}</span>
+                      <span>{ex.id === "nep" ? t.result.scamTitle : t.r.types[ex.typeKey as keyof typeof t.r.types]}</span>
                     </button>
                   ))}
                 </div>
