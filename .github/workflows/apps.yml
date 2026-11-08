@@ -7,6 +7,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write # om de schermafbeeldingen van de tests in een aparte branch te zetten
+
 concurrency:
   group: apps-${{ github.ref }}
   cancel-in-progress: true
@@ -85,6 +88,16 @@ jobs:
           name: briefhulp-android-test-schermen
           path: test-shots/
           retention-days: 14
+      - name: Schermafbeeldingen ook in branch test-schermen-android (om te bekijken zonder downloaden)
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          [ -d test-shots ] || exit 0
+          cd test-shots
+          git init -q -b test-schermen-android
+          git config user.name "Briefhulp CI"
+          git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -qm "Testschermen ${{ github.sha }}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" test-schermen-android
 
   ios:
     runs-on: macos-15
@@ -127,3 +140,13 @@ jobs:
           name: briefhulp-ios-test-scherm
           path: test-shots/
           retention-days: 14
+      - name: Schermafbeeldingen ook in branch test-schermen-ios (om te bekijken zonder downloaden)
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          [ -d test-shots ] || exit 0
+          cd test-shots
+          git init -q -b test-schermen-ios
+          git config user.name "Briefhulp CI"
+          git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -qm "Testschermen ${{ github.sha }}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" test-schermen-ios
