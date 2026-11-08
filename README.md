@@ -31,6 +31,15 @@ Maak een foto van een brief van de Belastingdienst, de gemeente, een verzekeraar
 
 > Let op: de vertalingen zijn door AI gemaakt. Laat ze vóór een officiële lancering nakijken door moedertaalsprekers.
 
+## App Store en Play Store
+
+Briefhulp is ook een echte app voor Android en iPhone (Capacitor 8, app-id `nl.briefhulp.app`). In de app zit alles: de gratis uitleg werkt zonder internet.
+
+- **Bouwen:** `npm run build:app` (losse bestanden in `out/`, zonder server) en `npx cap sync`.
+- **Automatisch op GitHub** (`.github/workflows/apps.yml`): Android-APK om te testen, AAB voor de Play Store, iPhone-bouw, en een echte test op een **Android-emulator** (de app wordt bestuurd: taal, voorbeeldbrief, voorlezen, tabbladen, terugknop, Arabisch) en in de **iPhone-simulator**, met schermafbeeldingen.
+- **Anders in de app:** voorlezen met de stem van de telefoon (ook op Android), herinnering voor een deadline als melding, delen en agenda via het deelmenu, Android-terugknop, opstartscherm, alleen toestemming voor camera en meldingen, geen cloud-back-up.
+- **Publiceren:** zie [`store/README.md`](store/README.md): stap voor stap, met kosten, ondertekening, teksten (`store/listing-*.md`), schermafbeeldingen (`store/screenshots/`) en antwoorden voor de privacyformulieren (`store/privacy-antwoorden.md`).
+
 ## Twee manieren van uitleggen
 
 | | **Gratis uitleg** (standaard) | **Volledige uitleg** (optioneel) |
