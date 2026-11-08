@@ -3,7 +3,13 @@ import { Atkinson_Hyperlegible } from "next/font/google";
 import "./globals.css";
 
 // Atkinson Hyperlegible is ontworpen voor mensen die slecht zien: letters zijn makkelijk uit elkaar te houden.
-const font = Atkinson_Hyperlegible({ subsets: ["latin", "latin-ext"], weight: ["400", "700"], display: "swap" });
+// Voor letters die Atkinson niet heeft (Cyrillisch, Arabisch, Perzisch…) de schreefloze letter van het toestel.
+const font = Atkinson_Hyperlegible({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "700"],
+  display: "swap",
+  fallback: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "Noto Sans", "Noto Sans Arabic", "Tahoma", "Arial", "sans-serif"],
+});
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||

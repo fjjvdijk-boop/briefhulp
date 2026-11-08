@@ -153,6 +153,7 @@ export const fr: Lang = {
     readAloud: "Lire à voix haute",
     stopReading: "Arrêter la lecture",
     noVoice: "Votre téléphone n'a pas de voix de lecture pour cette langue. Vous pouvez en ajouter une gratuitement dans les réglages : Accessibilité → Synthèse vocale (Android) ou Contenu énoncé → Voix (iPhone).",
+    slower: "Plus lentement",
     inShort: "En bref",
     whatToDo: "Que dois-je faire ?",
     stepLabel: (i, done) => `Étape ${i} ${done ? "faite" : "pas encore faite"}`,

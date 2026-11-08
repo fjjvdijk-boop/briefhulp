@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "./Icon";
-import { getDict, isBuiltIn, isRtl } from "../lib/i18n";
+import { getDict, isBuiltIn, isLangReady, isRtl } from "../lib/i18n";
 import type { Dict } from "../lib/i18n";
 import { dictFromTranslation, loadCachedTranslation } from "../lib/i18n/autotranslate";
 import { I18nProvider, useExtraTexts, useI18n } from "../lib/i18n/context";
@@ -29,7 +29,8 @@ function useLang() {
     }
   }, []);
   useExtraTexts(lang);
-  const t = auto ?? getDict(lang);
+  // Tot de gekozen taal geladen is: Nederlands (de pagina is vooraf in het Nederlands opgebouwd)
+  const t = auto ?? getDict(isLangReady(lang) ? lang : "nl");
   useEffect(() => {
     document.documentElement.lang = t.code;
     document.documentElement.dir = t.dir;

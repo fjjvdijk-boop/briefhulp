@@ -158,7 +158,7 @@ export function TopicCard({ topic, open }: { topic: Topic; open?: boolean }) {
             <li key={p}>{p}</li>
           ))}
         </ul>
-        <h4>{g.where}</h4>
+        <p className="topic-where-title">{g.where}</p>
         <ul className="topic-where">
           {topic.where.map((w) => (
             <li key={w.name}>

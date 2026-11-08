@@ -160,6 +160,7 @@ export const en: Dict = {
     readAloud: "Read aloud",
     stopReading: "Stop reading",
     noVoice: "Your phone has no reading voice for this language. You can add one for free in the settings: Accessibility → Text-to-speech (Android) or Spoken Content → Voices (iPhone).",
+    slower: "Slower",
     inShort: "In short",
     whatToDo: "What do I need to do?",
     stepLabel: (i, done) => `Step ${i} ${done ? "done" : "not done yet"}`,

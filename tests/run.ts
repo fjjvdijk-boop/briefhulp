@@ -1,6 +1,18 @@
 // Draait alle testbrieven door de gratis uitleg en laat zien wat goed en fout gaat.
 import { explainLocally } from "../lib/client/rules";
-import { getDict, BUILT_IN_ORDER, registerExtra } from "../lib/i18n";
+import { getDict, BUILT_IN_ORDER, registerExtra, registerLang } from "../lib/i18n";
+import { ar as arD } from "../lib/i18n/ar";
+import { tr as trD } from "../lib/i18n/tr";
+import { pl as plD } from "../lib/i18n/pl";
+import { uk as ukD } from "../lib/i18n/uk";
+import { ru as ruD } from "../lib/i18n/ru";
+import { ro as roD } from "../lib/i18n/ro";
+import { es as esD } from "../lib/i18n/es";
+import { fr as frD } from "../lib/i18n/fr";
+import { fa as faD } from "../lib/i18n/fa";
+import { so as soD } from "../lib/i18n/so";
+import { pt as ptD } from "../lib/i18n/pt";
+Object.entries({ ar: arD, tr: trD, pl: plD, uk: ukD, ru: ruD, ro: roD, es: esD, fr: frD, fa: faD, so: soD, pt: ptD }).forEach(([c, x]) => registerLang(c, x));
 import { extra as arX } from "../lib/i18n/extra/ar";
 import { extra as trX } from "../lib/i18n/extra/tr";
 import { extra as plX } from "../lib/i18n/extra/pl";
@@ -119,6 +131,25 @@ for (const code of BUILT_IN_ORDER) {
   else {
     failed++;
     fails.push("  ✗ CJIB-linkcontrole");
+  }
+}
+
+// ---------- Telefoonnummer van de afzender (niet de cijfers van een IBAN) ----------
+{
+  const t0 = getDict("nl");
+  const cases: [string, string | null][] = [
+    ["Postbus 1234 Tel: 050 - 123 45 67\nBetaal op NL91 ABNA 0417 1643 00 o.v.v. kenmerk 7002", "050 - 123 45 67"],
+    ["Betaal op NL91 ABNA 0417 1643 00.", null],
+    ["Bel ons gratis: 0800 - 0543.", "0800 - 0543"],
+    ["Dossiernummer 0123456789. Telefoon (088) 123 45 67", null],
+  ];
+  for (const [text, want] of cases) {
+    const got = (explainLocally(text, 95, TODAY, t0, "nl-NL").analysis as unknown as { contact?: { phone: string | null } }).contact?.phone ?? null;
+    if (got === want) passed++;
+    else {
+      failed++;
+      fails.push(`  ✗ telefoon in "${text.slice(0, 40)}": kreeg ${JSON.stringify(got)}, verwacht ${JSON.stringify(want)}`);
+    }
   }
 }
 

@@ -21,3 +21,10 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Browser voor de browsercontrole
+        run: npx playwright install --with-deps chromium
+      - name: Browsercontrole (toegankelijkheid, kleine schermen, alle talen, voorlezen)
+        run: |
+          npm start &
+          for i in $(seq 60); do curl -sf http://localhost:3000 >/dev/null && break; sleep 1; done
+          npm run e2e

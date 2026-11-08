@@ -36,7 +36,7 @@ Incassokosten € 40,00
 Totaal te betalen € 192,40
 Wij verzoeken u het totaalbedrag uiterlijk 16 november 2026 over te maken op NL91 ABNA 0417 1643 00 t.n.v. Incassobureau Noordpunt, onder vermelding van betalingskenmerk 7002 4415 8890 1123.
 Indien betaling uitblijft, zullen wij de vordering overdragen aan een gerechtsdeurwaarder.`,
-    expect: { route: "incasso", urgency: "rood", type: "aanmaning", sender: "incassobureau", senderName: /Noordpunt.*namens Zorgverzekeraar Zuidhaven/, pay: true, amount: "192,40", iban: "NL91 ABNA 0417 1643 00", reference: "7002 4415 8890 1123", deadline: "2026-11-16", scam: false },
+    expect: { route: "incasso", urgency: "rood", type: "aanmaning", sender: "incassobureau", senderName: /Noordpunt B\.V\. \(namens Zorgverzekeraar Zuidhaven\)/, pay: true, amount: "192,40", iban: "NL91 ABNA 0417 1643 00", reference: "7002 4415 8890 1123", deadline: "2026-11-16", scam: false },
   },
   {
     name: "Incasso: zelfde brief met tekstherkenningsfouten",

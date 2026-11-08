@@ -153,6 +153,7 @@ export const ro: Lang = {
     readAloud: "Citește cu voce tare",
     stopReading: "Oprește citirea",
     noVoice: "Telefonul dvs. nu are o voce de citire pentru această limbă. O puteți adăuga gratuit din setări: Accesibilitate → Redare text în vorbire (Android) sau Conținut vorbit → Voci (iPhone).",
+    slower: "Mai rar",
     inShort: "Pe scurt",
     whatToDo: "Ce trebuie să fac?",
     stepLabel: (i, done) => `Pasul ${i} ${done ? "făcut" : "încă nefăcut"}`,

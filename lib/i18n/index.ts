@@ -1,16 +1,5 @@
 import { nl, type Dict, type Lang } from "./nl";
 import { en } from "./en";
-import { ar } from "./ar";
-import { tr } from "./tr";
-import { pl } from "./pl";
-import { uk } from "./uk";
-import { ru } from "./ru";
-import { ro } from "./ro";
-import { es } from "./es";
-import { fr } from "./fr";
-import { fa } from "./fa";
-import { so } from "./so";
-import { pt } from "./pt";
 
 export type { Dict };
 
@@ -24,7 +13,50 @@ export interface LangInfo {
 }
 
 /** Talen die helemaal zijn ingebouwd: de hele app én de gratis uitleg, offline en gratis. */
-export const BUILT_IN: Record<string, Lang> = { nl, en, ar, tr, pl, uk, ru, ro, es, fr, fa, so, pt };
+export const BUILT_IN: Record<string, { name: string; dir: "ltr" | "rtl" }> = {
+  nl: { name: "Nederlands", dir: "ltr" },
+  en: { name: "English", dir: "ltr" },
+  ar: { name: "العربية", dir: "rtl" },
+  tr: { name: "Türkçe", dir: "ltr" },
+  pl: { name: "Polski", dir: "ltr" },
+  uk: { name: "Українська", dir: "ltr" },
+  ru: { name: "Русский", dir: "ltr" },
+  ro: { name: "Română", dir: "ltr" },
+  es: { name: "Español", dir: "ltr" },
+  fr: { name: "Français", dir: "ltr" },
+  fa: { name: "فارسی", dir: "rtl" },
+  so: { name: "Soomaali", dir: "ltr" },
+  pt: { name: "Português", dir: "ltr" },
+};
+
+/**
+ * Alleen Nederlands en Engels zitten altijd in de app. De andere ingebouwde talen (en hun extra teksten)
+ * worden pas geladen als iemand die taal kiest: een veel kleinere app, sneller op oude telefoons.
+ */
+const LOADED: Record<string, Lang> = { nl, en };
+const LANG_LOADERS: Record<string, () => Promise<Lang>> = {
+  ar: () => import("./ar").then((m) => m.ar),
+  tr: () => import("./tr").then((m) => m.tr),
+  pl: () => import("./pl").then((m) => m.pl),
+  uk: () => import("./uk").then((m) => m.uk),
+  ru: () => import("./ru").then((m) => m.ru),
+  ro: () => import("./ro").then((m) => m.ro),
+  es: () => import("./es").then((m) => m.es),
+  fr: () => import("./fr").then((m) => m.fr),
+  fa: () => import("./fa").then((m) => m.fa),
+  so: () => import("./so").then((m) => m.so),
+  pt: () => import("./pt").then((m) => m.pt),
+};
+
+export function registerLang(code: string, lang: Lang) {
+  LOADED[code] = lang;
+}
+
+/** Is deze taal (met extra teksten) klaar om te tonen? */
+export function isLangReady(code: string) {
+  if (!BUILT_IN[code]) return true;
+  return !!LOADED[code] && (!EXTRA_LOADERS[code] || !!EXTRA[code]);
+}
 export const BUILT_IN_ORDER = ["nl", "en", "ar", "tr", "pl", "uk", "ru", "ro", "es", "fr", "fa", "so", "pt"];
 
 /**
@@ -86,9 +118,14 @@ export function registerExtra(code: string, extra: Partial<Dict>) {
 
 /** Laadt de extra teksten van een taal. Geeft true als er iets nieuws geladen is. */
 export async function loadExtra(code: string): Promise<boolean> {
-  if (EXTRA[code] || !EXTRA_LOADERS[code]) return false;
+  if (isLangReady(code)) return false;
   try {
-    EXTRA[code] = (await EXTRA_LOADERS[code]()).extra;
+    const [base, extra] = await Promise.all([
+      LOADED[code] ? Promise.resolve(LOADED[code]) : LANG_LOADERS[code](),
+      EXTRA[code] ? Promise.resolve({ extra: EXTRA[code] }) : EXTRA_LOADERS[code](),
+    ]);
+    LOADED[code] = base;
+    EXTRA[code] = extra.extra;
     return true;
   } catch {
     return false;
@@ -96,7 +133,7 @@ export async function loadExtra(code: string): Promise<boolean> {
 }
 
 export function getDict(code: string): Dict {
-  const lang = BUILT_IN[code];
+  const lang = LOADED[code];
   if (code === "nl") return nl;
   if (!lang) return en;
   return merge(merge(en, lang as Partial<Dict>), EXTRA[code]);

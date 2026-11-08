@@ -153,6 +153,7 @@ export const so: Lang = {
     readAloud: "Kor u akhri",
     stopReading: "Jooji akhriska",
     noVoice: "Telefoonkaagu ma laha cod akhriya luqaddan. Waxaad si bilaash ah ugu dari kartaa goobaha: Accessibility → Text-to-speech (Android) ama Spoken Content → Voices (iPhone).",
+    slower: "Si tartiib ah",
     inShort: "Si kooban",
     whatToDo: "Maxaan sameeyaa?",
     stepLabel: (i, done) => `Tallaabada ${i} ${done ? "waa la sameeyay" : "weli lama samayn"}`,

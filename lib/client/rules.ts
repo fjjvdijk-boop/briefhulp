@@ -247,13 +247,15 @@ function findPaymentReference(text: string) {
 }
 
 function findPhone(text: string) {
-  const re = /(?:\+31\s?\(?0?\)?|\b0)(?:[\s-]?\d){6,10}\b/g;
+  const re = /(?:\+31\s?\(?0?\)?|\b0)(?:(?:\s?-\s?|\s)?\d){6,10}\b/g;
   const cands: { phone: string; score: number }[] = [];
   for (const m of text.matchAll(re)) {
     const digits = m[0].replace(/\D/g, "").replace(/^31/, "0");
     const special = /^0(800|900|88)/.test(digits);
     if (!(digits.length === 10 || (special && digits.length >= 7 && digits.length <= 11))) continue;
     const before = text.slice(Math.max(0, m.index! - 40), m.index!);
+    // Cijfers van een IBAN ("ABNA 0417 1643 00"), kenmerk of dossiernummer zijn geen telefoonnummer
+    if (/[A-Z]{4}\s?$|\b[A-Z]{2}\d{2}\s?[A-Z]{4}[\s\d]*$/.test(before) || /(kenmerk|dossier|klantnummer|factuurnummer|referentie)[^\n]{0,25}$/i.test(before)) continue;
     const score = /(tel|bel|telefoon|telefonisch|bereikbaar)/i.test(before) ? 2 : /fax/i.test(before) ? -5 : 0;
     cands.push({ phone: m[0].trim(), score });
   }
@@ -323,7 +325,9 @@ function findSender(text: string): { name: string; type: SenderType } {
 }
 
 function cleanName(s: string) {
-  return capitalize(s.replace(/[:|]+/g, "").replace(/[\s.,;]+$/, "").trim());
+  // Laatste punt weg, behalve bij afkortingen als "B.V." en "N.V."
+  const t = s.replace(/[:|]+/g, "").replace(/[\s,;]+$/, "").trim();
+  return capitalize(/\b[A-Z]\.[A-Z]\.$/.test(t) ? t : t.replace(/\.+$/, "").trim());
 }
 
 // "Namens onze opdrachtgever X" → "Incassobureau Y (namens X)"

@@ -2955,3 +2955,103 @@ details.note-pill {
     justify-self: center;
   }
 }
+
+/* ---------- Smalle schermen en lange woorden (alle talen, ook met grote letters) ---------- */
+.topbar > .topbar-btn,
+.topbar > .brand {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.topbar > .topbar-btn span,
+.brand > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbar-right {
+  flex: 0 0 auto;
+}
+h1, h2, h3, h4, .card-title, .topic summary, .btn span, .help-list strong, .fact-value, .headline, .lead, p, li, dd, dt, summary {
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+.card, .topic, .topic-body, .btn-col, .btn {
+  min-width: 0;
+  max-width: 100%;
+}
+.btn {
+  white-space: normal;
+}
+@media (max-width: 360px) {
+  .topbar-right {
+    gap: 6px;
+  }
+  .topbar-btn {
+    padding: 6px 10px;
+  }
+  .large-text .topbar > .topbar-btn span {
+    max-width: 9ch;
+  }
+}
+.letter-text:focus-visible {
+  outline: 3px solid var(--focus, var(--primary));
+  outline-offset: 2px;
+}
+.topic-where-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 14px 0 6px;
+}
+.tabs {
+  grid-auto-columns: minmax(0, 1fr);
+}
+.tab {
+  min-width: 0;
+}
+.tab span {
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  max-width: 100%;
+}
+
+/* Voorlezen + langzamer */
+.listen-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.listen-row .btn-listen {
+  flex: 1 1 auto;
+}
+.btn-slow {
+  flex: 0 0 auto;
+  min-height: 56px;
+  padding-inline: 14px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  gap: 6px;
+}
+.btn-slow.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.listen-row:has(.btn-small) .btn-slow {
+  min-height: 48px;
+}
+@media print {
+  .listen-row {
+    display: none !important;
+  }
+}
+.listen-row {
+  flex-wrap: wrap;
+}
+.listen-row .btn-listen {
+  min-width: min(100%, 12rem);
+}
+.listen-row .btn-slow {
+  flex: 0 1 auto;
+  max-width: 100%;
+}

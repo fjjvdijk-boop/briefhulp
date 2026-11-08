@@ -153,6 +153,7 @@ export const tr: Lang = {
     readAloud: "Sesli oku",
     stopReading: "Okumayı durdur",
     noVoice: "Telefonunuzda bu dil için sesli okuma sesi yok. Ayarlardan ücretsiz ekleyebilirsiniz: Erişilebilirlik → Metin okuma (Android) veya Seslendirilen İçerik → Sesler (iPhone).",
+    slower: "Daha yavaş",
     inShort: "Kısaca",
     whatToDo: "Ne yapmam gerekiyor?",
     stepLabel: (i, done) => `Adım ${i} ${done ? "yapıldı" : "henüz yapılmadı"}`,

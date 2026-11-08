@@ -153,6 +153,7 @@ export const pt: Lang = {
     readAloud: "Ler em voz alta",
     stopReading: "Parar de ler",
     noVoice: "O seu telemóvel não tem uma voz de leitura para esta língua. Pode adicionar uma gratuitamente nas definições: Acessibilidade → Texto para voz (Android) ou Conteúdo falado → Vozes (iPhone).",
+    slower: "Mais devagar",
     inShort: "Em resumo",
     whatToDo: "O que tenho de fazer?",
     stepLabel: (i, done) => `Passo ${i} ${done ? "feito" : "por fazer"}`,

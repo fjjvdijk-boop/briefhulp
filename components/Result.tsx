@@ -408,7 +408,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
           <summary className="card-title">{t.result.letterText}</summary>
           <p className="hint">{t.result.letterTextHint}</p>
           <ReadAloud label={t.result.readLetter} stopLabel={t.result.stopReading} lang="nl" parts={[letterText]} letter small />
-          <pre className="letter-text" lang="nl" dir="ltr">
+          <pre className="letter-text" lang="nl" dir="ltr" tabIndex={0} aria-label={t.result.letterText}>
             {letterText}
           </pre>
         </details>
@@ -526,7 +526,7 @@ function CopyRow({ label, value, important, iban, verified }: { label: string; v
         <span className="mono" dir="ltr">
           {value}
         </span>
-        <button className="copy-btn" onClick={copy} aria-label={t.result.copyLabel(label)}>
+        <button className="copy-btn" onClick={copy} aria-label={`${copied ? t.result.copied : t.result.copy}: ${label}`}>
           <Icon name={copied ? "check" : "copy"} size={22} />
           <span>{copied ? t.result.copied : t.result.copy}</span>
         </button>
@@ -535,14 +535,22 @@ function CopyRow({ label, value, important, iban, verified }: { label: string; v
   );
 }
 
+const SLOW_KEY = "briefhulp:speech-slow";
+
 function ReadAloud({ label, stopLabel, lang, parts, small, letter }: { label: string; stopLabel: string; lang: string; parts: string[]; small?: boolean; letter?: boolean }) {
   const { t } = useI18n();
   const [active, setActive] = useState(false);
   const [supported, setSupported] = useState(false);
   const [noVoice, setNoVoice] = useState(false);
+  const [slow, setSlow] = useState(false);
   const idRef = useRef<number | null>(null);
   useEffect(() => {
     setSupported("speechSynthesis" in window);
+    try {
+      setSlow(localStorage.getItem(SLOW_KEY) === "1");
+    } catch {
+      /* geen opslag */
+    }
     loadVoices(); // alvast laden, dan start het voorlezen direct
     const off = onSpeechChange((cur) => setActive(cur !== null && cur === idRef.current));
     return () => {
@@ -557,16 +565,38 @@ function ReadAloud({ label, stopLabel, lang, parts, small, letter }: { label: st
     if (active) return stopSpeech();
     setNoVoice(false);
     const list = letter ? parts.flatMap((p) => letterToSpeech(p)) : parts;
-    idRef.current = speak(list, { lang, onNoVoice: () => setNoVoice(true) });
+    idRef.current = speak(list, { lang, rate: slow ? 0.78 : 1, onNoVoice: () => setNoVoice(true) });
     setActive(isSpeaking(idRef.current));
+  };
+  const toggleSlow = () => {
+    const next = !slow;
+    setSlow(next);
+    try {
+      localStorage.setItem(SLOW_KEY, next ? "1" : "0");
+    } catch {
+      /* geen opslag */
+    }
+    if (active) {
+      // Meteen opnieuw beginnen in het nieuwe tempo
+      stopSpeech();
+      const list = letter ? parts.flatMap((p) => letterToSpeech(p)) : parts;
+      idRef.current = speak(list, { lang, rate: next ? 0.78 : 1, onNoVoice: () => setNoVoice(true) });
+      setActive(isSpeaking(idRef.current));
+    }
   };
 
   return (
     <>
-      <button className={`btn btn-listen ${active ? "on" : ""} ${small ? "btn-small" : ""}`} onClick={toggle} aria-pressed={active}>
-        <Icon name={active ? "stop" : "speaker"} />
-        <span>{active ? stopLabel : label}</span>
-      </button>
+      <div className="listen-row">
+        <button className={`btn btn-listen ${active ? "on" : ""} ${small ? "btn-small" : ""}`} onClick={toggle} aria-pressed={active}>
+          <Icon name={active ? "stop" : "speaker"} />
+          <span>{active ? stopLabel : label}</span>
+        </button>
+        <button className={`btn btn-slow ${slow ? "on" : ""}`} onClick={toggleSlow} aria-pressed={slow}>
+          <span aria-hidden="true">🐢</span>
+          <span>{t.result.slower}</span>
+        </button>
+      </div>
       {noVoice && (
         <p className="hint no-voice" role="status">
           {t.result.noVoice}

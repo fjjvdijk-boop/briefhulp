@@ -31,6 +31,7 @@ export function LanguageScreen({ current, aiAvailable, onChoose }: Props) {
   const [all, setAll] = useState<LangInfo[]>([]);
   const [picked, setPicked] = useState<LangInfo | null>(null);
   const [auto, setAuto] = useState<"checking" | "yes" | "no">("checking");
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     import("../lib/i18n/languages.json").then((m) => setAll((m.default as LangInfo[]).filter((l) => !isBuiltIn(l.c))));
@@ -159,11 +160,13 @@ export function LanguageScreen({ current, aiAvailable, onChoose }: Props) {
         </ul>
       )}
 
-      <details className="more-langs" open={query.length > 0}>
+      <details className="more-langs" open={query.length > 0 || moreOpen} onToggle={(e) => setMoreOpen((e.target as HTMLDetailsElement).open)}>
         <summary>
           <span>Alle talen · All languages</span>
           <span className="count">{all.length || "…"}</span>
         </summary>
+        {/* De lange lijst pas opbouwen als hij open is: sneller starten op oude telefoons */}
+        {(query.length > 0 || moreOpen) && (
         <ul className="lang-list" role="list">
           {more.slice(0, query ? 200 : 1000).map((l) => (
             <li key={l.c}>
@@ -176,6 +179,7 @@ export function LanguageScreen({ current, aiAvailable, onChoose }: Props) {
             </li>
           ))}
         </ul>
+        )}
       </details>
       {builtIn.length === 0 && more.length === 0 && all.length > 0 && <p className="hint">—</p>}
     </section>

@@ -13,7 +13,7 @@ import { loadDeadlines, removeDeadline, saveDeadline, type SavedDeadline } from 
 import { readLetter, type ReadProgress } from "../lib/client/ocr";
 import { explainLocally } from "../lib/client/rules";
 import { sampleLetterText, sampleLetters } from "../lib/sample";
-import { getDict, isBuiltIn, isRtl, locale as toLocale, type Dict, type LangInfo } from "../lib/i18n";
+import { getDict, isBuiltIn, isLangReady, isRtl, loadExtra, locale as toLocale, type Dict, type LangInfo } from "../lib/i18n";
 import { dictFromTranslation, loadCachedTranslation, translateApp } from "../lib/i18n/autotranslate";
 import { I18nProvider, useExtraTexts, useI18n } from "../lib/i18n/context";
 import type { Analysis } from "../lib/types";
@@ -84,7 +84,13 @@ export default function BriefApp() {
 
   const lang = prefs.lang ?? "nl";
   const extraVersion = useExtraTexts(lang);
-  const t = useMemo(() => (!isBuiltIn(lang) && autoDict ? autoDict : getDict(lang)), [lang, autoDict, extraVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Een ingebouwde taal wordt pas geladen als hij gekozen is; tot die tijd blijven de vorige teksten staan.
+  const lastDict = useRef<Dict>(getDict("nl"));
+  const t = useMemo(() => {
+    if (!isBuiltIn(lang) && autoDict) return autoDict;
+    if (!isLangReady(lang)) return lastDict.current;
+    return (lastDict.current = getDict(lang));
+  }, [lang, autoDict, extraVersion]); // eslint-disable-line react-hooks/exhaustive-deps
   const uiLang = t.code === "en" && lang !== "en" ? "en" : lang;
   const notTranslated = !isBuiltIn(lang) && !autoDict && !!prefs.lang;
   const loc = safeLocale(toLocale(uiLang));
@@ -308,6 +314,7 @@ export default function BriefApp() {
     const fromResult = !!analysis;
     const name = info ? info.n ?? info.en : undefined;
     const rtl = info ? !!info.rtl || isRtl(code) : undefined;
+    await loadExtra(code); // ingebouwde taal: eerst de teksten ophalen (gaat snel, daarna uit de cache)
     updatePrefs({ lang: code, langName: name, langRtl: rtl });
     let nextDict: Dict = getDict(code);
     if (!isBuiltIn(code)) {
@@ -370,7 +377,7 @@ export default function BriefApp() {
           )}
           <div className="topbar-right">
             {prefs.lang && screen !== "language" && (
-              <button className="topbar-btn" onClick={() => go("language")} aria-label={t.app.language}>
+              <button className="topbar-btn" onClick={() => go("language")} aria-label={`${t.app.language}: ${lang.toUpperCase()}`}>
                 <Icon name="globe" size={22} />
                 <span className="lang-code">{lang.toUpperCase()}</span>
               </button>
@@ -414,7 +421,7 @@ export default function BriefApp() {
               <h1 className="title" dir={prefs.langRtl ? "rtl" : "ltr"}>
                 {prefs.langName ?? lang}
               </h1>
-              <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(transProgress * 100)}>
+              <div className="progress" role="progressbar" aria-label={prefs.langName ?? lang} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(transProgress * 100)}>
                 <div className="progress-bar" style={{ width: `${Math.max(4, transProgress * 100)}%` }} />
               </div>
               <p className="lead" lang="en">
@@ -813,7 +820,7 @@ function LocalLoading({ progress, onCancel }: { progress: ReadProgress; onCancel
     <section className="screen center loading" aria-live="polite" aria-busy="true">
       <ScanArt />
       <h1 className="title">{preparing ? t.loading.preparing : t.loading.reading}</h1>
-      <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={preparing ? undefined : pct}>
+      <div className="progress" role="progressbar" aria-label={preparing ? t.loading.preparing : t.loading.reading} aria-valuemin={0} aria-valuemax={100} aria-valuenow={preparing ? undefined : pct}>
         <div className="progress-bar" style={{ width: preparing ? "100%" : `${Math.max(4, pct)}%` }} data-indeterminate={preparing} />
       </div>
       <p className="hint">

@@ -24,7 +24,10 @@ Maak een foto van een brief van de Belastingdienst, de gemeente, een verzekeraar
 - **Meer soorten brieven:** CJIB, terugvordering toeslagen, WOZ-beschikking, aangifte-uitnodiging, huurverhoging, jaarafrekening, factuur, dagvaarding en meer.
 - **Mijn deadlines:** bewaar een deadline (alleen op de telefoon, zonder foto) en zie hem op het startscherm.
 - **Installeerbaar en offline** (service worker), **hele brief voorlezen**, **"Klopte deze uitleg?"** (anoniem: alleen ja/nee + soort brief).
-- **Testset:** `npm test` controleert 14 verzonnen brieven, alle talen (ook of er niets meer in het Engels staat), het voorlezen en de betaalhulp (266/266 goed).
+- **Kwaliteit (nieuw):** Lighthouse 94 / 100 / 100 / 100 (snelheid, toegankelijkheid, best practices, SEO). Talen worden pas geladen als ze gekozen zijn (app 251 → 183 kB). Werkt op een scherm van 320 px breed in alle talen, ook met grote letters. Eigen lettertype met nette terugval voor Cyrillisch, Arabisch en Perzisch.
+- **Langzamer voorlezen (nieuw):** knop 🐢 naast "Lees voor", wordt onthouden.
+- **Browsercontrole:** `npm run e2e` (na `npm run build && npm start`) controleert 214 schermen: alle 13 talen × licht/donker × alle tabbladen en pagina's met axe, geen horizontaal scrollen op 320 px, en vloeiend voorlezen. Draait ook automatisch op GitHub.
+- **Testset:** `npm test` controleert 14 verzonnen brieven, alle talen (ook of er niets meer in het Engels staat), het voorlezen en de betaalhulp (270/270 goed).
 
 > Let op: de vertalingen zijn door AI gemaakt. Laat ze vóór een officiële lancering nakijken door moedertaalsprekers.
 
