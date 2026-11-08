@@ -9,3 +9,4 @@ node_modules
 out/
 public/vendor
 .middleware-tijdelijk-weg.ts
+test-shots/
