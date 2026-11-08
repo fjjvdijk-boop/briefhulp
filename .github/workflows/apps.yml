@@ -1,0 +1,89 @@
+name: Apps bouwen
+
+# Bouwt de Android-app (APK om zelf te testen + AAB voor de Play Store) en controleert dat de iPhone-app bouwt.
+# Starten: bij elke push naar main, of met de hand via Actions → "Apps bouwen" → Run workflow.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: apps-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      VERSION_CODE: ${{ github.run_number }}
+      VERSION_NAME: 1.0.${{ github.run_number }}
+      # Optioneel: adres van de server voor de AI-uitleg. Leeg = alleen de gratis uitleg op het toestel.
+      NEXT_PUBLIC_API_BASE: ${{ vars.API_BASE }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: App-bestanden bouwen
+        run: npm run build:app
+      - name: Naar het Android-project kopiëren
+        run: npx cap sync android
+      - name: Sleutel voor de Play Store (alleen als die als geheim is ingesteld)
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/briefhulp.jks"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/briefhulp.jks" >> "$GITHUB_ENV"
+          fi
+      - name: Android bouwen (APK + AAB)
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug bundleRelease
+      - name: APK om te testen
+        uses: actions/upload-artifact@v4
+        with:
+          name: briefhulp-android-test-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+      - name: AAB voor de Play Store
+        uses: actions/upload-artifact@v4
+        with:
+          name: briefhulp-android-playstore-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      NEXT_PUBLIC_API_BASE: ${{ vars.API_BASE }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: App-bestanden bouwen
+        run: npm run build:app
+      - name: Naar het iOS-project kopiëren
+        run: npx cap sync ios
+      - name: iPhone-app bouwen (simulator, zonder ondertekening)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 40
+          test "${PIPESTATUS[0]}" -eq 0

@@ -9,10 +9,22 @@
     "typecheck": "tsc --noEmit",
     "postinstall": "node scripts/copy-vendor.mjs",
     "test": "tsx tests/run.ts",
-    "e2e": "node tests/e2e.mjs"
+    "e2e": "node tests/e2e.mjs",
+    "build:app": "node scripts/build-app.mjs",
+    "cap:sync": "npx cap sync"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",
+    "@capacitor-community/text-to-speech": "^8.0.2",
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/ios": "^8.6.0",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/share": "^8.0.3",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
     "@tesseract.js-data/nld": "^1.0.0",
     "jsqr": "^1.4.0",
     "next": "^15.5.29",
@@ -24,6 +36,8 @@
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
+    "@capacitor/cli": "^8.6.0",
     "@types/node": "^26.6.6",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",

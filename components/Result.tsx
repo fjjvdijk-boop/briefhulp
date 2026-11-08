@@ -6,13 +6,14 @@ import { ReplyCard } from "./ReplyLetter";
 import { DisagreePlan, PayHelp, RightsList } from "./LegalParts";
 import { disagreeReplies, paymentReplies } from "../lib/client/reply";
 import { relevantTopics } from "../lib/legal/route";
-import { daysUntil, downloadIcs, formatDateLong, googleCalendarUrl } from "../lib/client/calendar";
+import { buildIcs, daysUntil, downloadIcs, formatDateLong, googleCalendarUrl } from "../lib/client/calendar";
 import type { SavedDeadline } from "../lib/client/deadlines";
 import { useI18n } from "../lib/i18n/context";
+import { apiUrl, hasServer, isNative, scheduleDeadlineReminders, shareFile, shareText } from "../lib/client/platform";
 import { isRtl } from "../lib/i18n";
 import type { Dict } from "../lib/i18n/nl";
 import type { Analysis, Urgency } from "../lib/types";
-import { isSpeaking, letterToSpeech, loadVoices, onSpeechChange, speak, stopSpeech } from "../lib/client/speech";
+import { isSpeaking, letterToSpeech, loadVoices, onSpeechChange, speak, speechSupported, stopSpeech } from "../lib/client/speech";
 
 const URGENCY_ICON: Record<Urgency, string> = { rood: "alert", oranje: "clock", groen: "check" };
 type Tab = "overview" | "pay" | "disagree" | "help";
@@ -44,6 +45,20 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
   const days = a.deadline.date ? daysUntil(a.deadline.date) : null;
   const gcal = googleCalendarUrl(a, t);
   const [calAdded, setCalAdded] = useState(false);
+  const [native, setNative] = useState(false);
+  const [reminder, setReminder] = useState<"none" | "set" | "denied">("none");
+  useEffect(() => setNative(isNative()), []);
+  const remind = async () => {
+    if (!a.deadline.date) return;
+    const what = a.deadline.what || a.headline;
+    const n = await scheduleDeadlineReminders({
+      key: `${a.sender.name}|${a.deadline.date}`,
+      dateIso: a.deadline.date,
+      title: t.result.notifTitle,
+      body: (d) => `${t.result.notifDays(d)}: ${what} (${a.sender.name.replace(/\s*\(namens .*\)$/, "")})`,
+    }).catch(() => 0);
+    setReminder(n > 0 ? "set" : "denied");
+  };
   const telHref = a.contact.phone ? `tel:${a.contact.phone.replace(/[^\d+]/g, "")}` : null;
   const site = a.contact.website ? (a.contact.website.startsWith("http") ? a.contact.website : `https://${a.contact.website}`) : null;
   const shareText = useMemo(() => buildShareText(a, t, locale), [a, t, locale]);
@@ -235,10 +250,20 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
           {a.deadline.is_estimate && <p className="hint">{t.result.estimated}</p>}
           {days >= 0 && (
             <div className="btn-row">
+              {native && (
+                <button className="btn btn-primary" onClick={remind} aria-pressed={reminder === "set"}>
+                  <Icon name={reminder === "set" ? "check" : "clock"} />
+                  <span>{t.result.remindMe}</span>
+                </button>
+              )}
               <button
-                className="btn btn-primary"
-                onClick={() => {
-                  downloadIcs(a, t);
+                className={`btn ${native ? "btn-secondary" : "btn-primary"}`}
+                onClick={async () => {
+                  // In de app kan een webpagina niets downloaden: dan via het deelmenu naar de agenda-app
+                  if (native) {
+                    const ics = buildIcs(a, t);
+                    if (ics) await shareFile("briefhulp-herinnering.ics", ics, t.result.addCalendar);
+                  } else downloadIcs(a, t);
                   setCalAdded(true);
                 }}
               >
@@ -252,7 +277,9 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
               )}
             </div>
           )}
-          {calAdded && <p className="hint">{t.result.calendarHint}</p>}
+          {reminder === "set" && <p className="hint" role="status">{t.result.remindSet}</p>}
+          {reminder === "denied" && <p className="notice" role="status">{t.result.remindDenied}</p>}
+          {calAdded && !native && <p className="hint">{t.result.calendarHint}</p>}
           {days >= 0 && !isExample && (
             <div className="save-deadline">
               <button
@@ -450,10 +477,12 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
 
       <div className="btn-col">
         <ShareButton text={shareText} />
-        <button className="btn btn-ghost" onClick={() => window.print()}>
-          <Icon name="print" />
-          <span>{t.result.print}</span>
-        </button>
+        {!native && (
+          <button className="btn btn-ghost" onClick={() => window.print()}>
+            <Icon name="print" />
+            <span>{t.result.print}</span>
+          </button>
+        )}
         <button className="btn btn-primary" onClick={onNew}>
           <Icon name="camera" />
           <span>{t.result.another}</span>
@@ -545,7 +574,7 @@ function ReadAloud({ label, stopLabel, lang, parts, small, letter }: { label: st
   const [slow, setSlow] = useState(false);
   const idRef = useRef<number | null>(null);
   useEffect(() => {
-    setSupported("speechSynthesis" in window);
+    setSupported(speechSupported());
     try {
       setSlow(localStorage.getItem(SLOW_KEY) === "1");
     } catch {
@@ -611,7 +640,7 @@ function Feedback({ mode, senderType, typeKey, urgency }: { mode: string; sender
   const [sent, setSent] = useState(false);
   const send = (good: boolean) => {
     setSent(true);
-    fetch("/api/feedback", {
+    fetch(apiUrl("/api/feedback"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ good, mode, sender: senderType, type: typeKey, urgency, lang }),
@@ -656,7 +685,7 @@ function AskQuestion({ analysis }: { analysis: Analysis }) {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/vraag", {
+      const res = await fetch(apiUrl("/api/vraag"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ analysis, question: text, language: lang, history }),
@@ -743,9 +772,7 @@ function ShareButton({ text }: { text: string }) {
   const [msg, setMsg] = useState<string | null>(null);
   const share = async () => {
     try {
-      if (navigator.share) {
-        await navigator.share({ title: t.result.shareTitle, text });
-      } else {
+      if (!(await shareText(text, t.result.shareTitle))) {
         await navigator.clipboard.writeText(text);
         setMsg(t.result.shareCopied);
       }

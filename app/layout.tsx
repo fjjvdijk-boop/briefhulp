@@ -38,7 +38,11 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#1b3fa6",
+  viewportFit: "cover", // tot in de randen van iPhones met een inkeping (veilige marges via env(safe-area-inset-*))
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f4ef" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d1324" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

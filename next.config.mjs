@@ -26,11 +26,22 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
 ];
 
-const nextConfig = {
-  poweredByHeader: false,
-  async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
-  },
-};
+// BUILD_TARGET=app: losse bestanden voor de app in de App Store / Play Store (Capacitor).
+// Dan is er geen server: de gratis uitleg werkt helemaal op het toestel. Zie scripts/build-app.mjs.
+const isApp = process.env.BUILD_TARGET === "app";
+
+const nextConfig = isApp
+  ? {
+      output: "export",
+      trailingSlash: true,
+      images: { unoptimized: true },
+      poweredByHeader: false,
+    }
+  : {
+      poweredByHeader: false,
+      async headers() {
+        return [{ source: "/:path*", headers: securityHeaders }];
+      },
+    };
 
 export default nextConfig;

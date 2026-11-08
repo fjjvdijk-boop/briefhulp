@@ -1,5 +1,6 @@
 "use client";
 
+import { isNative, shareText } from "../lib/client/platform";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "./Icon";
 import { useI18n } from "../lib/i18n/context";
@@ -82,8 +83,7 @@ function ReplySheet({ kind, analysis, onClose }: { kind: ReplyKind; analysis: An
   };
   const share = async () => {
     try {
-      if (navigator.share) await navigator.share({ title: subject, text: letter });
-      else await copy();
+      if (!(await shareText(letter, subject))) await copy();
     } catch {
       /* geannuleerd */
     }
@@ -150,10 +150,12 @@ function ReplySheet({ kind, analysis, onClose }: { kind: ReplyKind; analysis: An
             <Icon name="send" />
             <span>{r.email}</span>
           </a>
-          <button className="btn btn-ghost" onClick={print}>
-            <Icon name="print" />
-            <span>{r.print}</span>
-          </button>
+          {!isNative() && (
+            <button className="btn btn-ghost" onClick={print}>
+              <Icon name="print" />
+              <span>{r.print}</span>
+            </button>
+          )}
         </div>
         <p className="hint">{r.sendTip}</p>
       </div>

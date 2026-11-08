@@ -15,6 +15,7 @@ import { explainLocally } from "../lib/client/rules";
 import { sampleLetterText, sampleLetters } from "../lib/sample";
 import { getDict, isBuiltIn, isLangReady, isRtl, loadExtra, locale as toLocale, type Dict, type LangInfo } from "../lib/i18n";
 import { dictFromTranslation, loadCachedTranslation, translateApp } from "../lib/i18n/autotranslate";
+import { apiUrl, hasServer, isNative, setupNative } from "../lib/client/platform";
 import { I18nProvider, useExtraTexts, useI18n } from "../lib/i18n/context";
 import type { Analysis } from "../lib/types";
 
@@ -58,6 +59,8 @@ export default function BriefApp() {
   const [prefs, setPrefs] = useState<Prefs>({ lang: null, onboarded: true, largeText: false, installDismissed: true });
   const [ready, setReady] = useState(false);
   const [screen, setScreen] = useState<Screen>("home");
+  const screenRef = useRef<Screen>("home");
+  screenRef.current = screen;
   const [pages, setPages] = useState<PreparedPage[]>([]);
   const [busyFile, setBusyFile] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -108,10 +111,12 @@ export default function BriefApp() {
     else if (!p.onboarded) setScreen("welcome");
     setReady(true);
 
-    fetch("/api/status")
-      .then((r) => r.json())
-      .then((j) => setAiAvailable(Boolean(j.ai)))
-      .catch(() => setAiAvailable(false));
+    if (hasServer())
+      fetch(apiUrl("/api/status"))
+        .then((r) => r.json())
+        .then((j) => setAiAvailable(Boolean(j.ai)))
+        .catch(() => setAiAvailable(false));
+    else setAiAvailable(false); // app zonder server: alleen de gratis uitleg op het toestel
 
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
@@ -122,7 +127,18 @@ export default function BriefApp() {
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
 
-    if ("serviceWorker" in navigator) {
+    // In de app: Android-terugknop, statusbalk, opstartscherm. Geen service worker en geen "installeer"-melding.
+    if (isNative()) {
+      setIsIos(false);
+      void setupNative(() => {
+        if (cameraOpenRef.current || screenRef.current !== "home") {
+          if (["language", "welcome"].includes(screenRef.current) && !window.history.state) return false;
+          window.history.back();
+          return true;
+        }
+        return false;
+      });
+    } else if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {
         /* zonder service worker werkt alles ook */
       });
@@ -265,7 +281,7 @@ export default function BriefApp() {
     setErrorKey(null);
     go("loading");
     try {
-      const res = await fetch("/api/analyse", {
+      const res = await fetch(apiUrl("/api/analyse"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

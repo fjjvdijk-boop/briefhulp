@@ -1,3 +1,5 @@
+import { isNative } from "./platform";
+
 // Voorlezen met de ingebouwde stemmen van de telefoon (Web Speech API). Alles op het toestel.
 //
 // Waarom zo: browsers hebben bekende problemen die het voorlezen "haperig" maken.
@@ -41,7 +43,7 @@ let voicesReady: Promise<SpeechSynthesisVoice[]> | null = null;
 
 /** Wacht (max. 2 s) tot de telefoon zijn stemmen heeft geladen. */
 export function loadVoices(): Promise<SpeechSynthesisVoice[]> {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return Promise.resolve([]);
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || isNative()) return Promise.resolve([]);
   const synth = window.speechSynthesis;
   const now = synth.getVoices();
   if (now.length) return Promise.resolve(now);
@@ -90,6 +92,7 @@ export function pickVoice(voices: SpeechSynthesisVoice[], code: string): SpeechS
 
 /** Of deze telefoon een stem heeft voor deze taal (null = weet nog niet / geen lijst beschikbaar). */
 export async function hasVoice(code: string): Promise<boolean | null> {
+  if (isNative()) return null; // in de app meldt runNative dit zelf
   const v = await loadVoices();
   if (!v.length) return null;
   return !!pickVoice(v, code);
@@ -322,8 +325,61 @@ export function stopSpeech() {
   if (watchdog) clearTimeout(watchdog);
   watchdog = null;
   keep = null;
-  if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  if (isNative()) void nativeTts().then((t) => t.stop()).catch(() => {});
+  else if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
   setCurrent(null);
+}
+
+/** Kan dit toestel voorlezen? (In de app altijd: de stem van de telefoon zelf.) */
+export function speechSupported() {
+  if (typeof window === "undefined") return false;
+  return isNative() || "speechSynthesis" in window;
+}
+
+const nativeTts = () => import("@capacitor-community/text-to-speech").then((m) => m.TextToSpeech);
+
+/**
+ * In de app: de stem van de telefoon via een plug-in. De webweergave van Android kan zelf niet voorlezen,
+ * en zo klinkt het op beide systemen hetzelfde als de rest van de telefoon.
+ */
+async function runNative(id: number, parts: string[], opts: SpeakOptions) {
+  const tts = await nativeTts();
+  const bcp = speechLang(opts.lang);
+  const candidates = [bcp, ...(PREFERRED[opts.lang] ?? []), opts.lang];
+  let lang: string | null = null;
+  for (const c of candidates) {
+    try {
+      if ((await tts.isLanguageSupported({ lang: c })).supported) {
+        lang = c;
+        break;
+      }
+    } catch {
+      /* volgende proberen */
+    }
+  }
+  if (currentId !== id) return;
+  if (!lang) {
+    setCurrent(null);
+    opts.onNoVoice?.();
+    return;
+  }
+  const chunks = parts
+    .map((p) => prepareForSpeech(p, opts.lang))
+    .filter((p) => /[\p{L}\p{N}]/u.test(p))
+    .flatMap((p) => chunkText(p, lang!));
+  for (const text of chunks) {
+    if (currentId !== id) return;
+    try {
+      // De plug-in wacht tot de zin uitgesproken is: zo komen de zinnen netjes na elkaar
+      await tts.speak({ text, lang, rate: opts.rate ?? 1, pitch: 1, volume: 1, category: "playback" });
+    } catch {
+      if (currentId !== id) return; // gestopt
+    }
+  }
+  if (currentId === id) {
+    setCurrent(null);
+    opts.onEnd?.();
+  }
 }
 
 export interface SpeakOptions {
@@ -342,10 +398,10 @@ export interface SpeakOptions {
  */
 export function speak(parts: string[], opts: SpeakOptions): number {
   const id = nextId++;
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return id;
+  if (!speechSupported()) return id;
   stopSpeech();
   setCurrent(id); // knop meteen op "Stoppen", ook terwijl de stemmen nog laden
-  void run(id, parts, opts);
+  void (isNative() ? runNative(id, parts, opts) : run(id, parts, opts));
   return id;
 }
 

@@ -1,8 +1,11 @@
-node_modules
-.next
-.env*.local
-.env
-next-env.d.ts
 *.tsbuildinfo
-public/vendor
+.api-tijdelijk-weg/
+.env
+.env*.local
+.next
 briefhulp-code.zip
+next-env.d.ts
+node_modules
+out/
+public/vendor
+.middleware-tijdelijk-weg.ts
