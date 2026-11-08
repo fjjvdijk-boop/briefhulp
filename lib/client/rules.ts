@@ -173,6 +173,25 @@ function fixIbanOcr(s: string) {
     .join("");
 }
 
+// Lengte van het IBAN per land (alleen landen die op brieven aan Nederlanders voorkomen).
+const IBAN_LEN: Record<string, number> = {
+  NL: 18, BE: 16, DE: 22, FR: 27, ES: 24, IT: 27, PT: 25, LU: 20, AT: 20, PL: 28, GB: 22, IE: 22,
+  DK: 18, SE: 24, FI: 18, NO: 15, CH: 21, CZ: 24, SK: 24, HU: 28, RO: 24, BG: 22, GR: 27, HR: 21,
+  SI: 19, EE: 20, LV: 21, LT: 20, CY: 28, MT: 31, TR: 26, MA: 28,
+};
+/** Ziet dit eruit als een echt IBAN (niet als toevallige tekst)? */
+function plausibleIban(cand: string, raw: string) {
+  const cc = cand.slice(0, 2);
+  if (IBAN_LEN[cc] !== cand.length) return false;
+  if (cc === "NL" && !/^NL\d{2}[A-Z]{4}\d{10}$/.test(cand)) return false;
+  // In de gelezen tekst moeten echt genoeg cijfers staan (anders is het gewone tekst)
+  // OCR-lookalikes (O, I, L, S, B, Z) tellen mee, maar er moeten ook echte cijfers zijn.
+  const body = raw.toUpperCase().replace(/\s/g, "").slice(2);
+  const real = (body.match(/\d/g) ?? []).length;
+  const digitish = (body.match(/[0-9OILSBZ]/g) ?? []).length;
+  return real >= 5 && digitish >= Math.min(10, cand.length - 6);
+}
+
 function findIban(text: string) {
   const re = /\b([A-Z]{2}\s{0,3}[0-9OIL]{2}(?:\s{0,3}[A-Z0-9]){10,30})/g;
   const upper = text.toUpperCase().replace(/O(?=\d)/g, "0");
@@ -182,7 +201,7 @@ function findIban(text: string) {
     for (let len = Math.min(compact.length, 34); len >= 15; len--) {
       const cand = compact.slice(0, len);
       for (const c of [cand, fixIbanOcr(cand)]) {
-        if (ibanValid(c)) return c.replace(/(.{4})/g, "$1 ").trim();
+        if (plausibleIban(c, m[1]) && ibanValid(c)) return c.replace(/(.{4})/g, "$1 ").trim();
       }
     }
   }
@@ -322,7 +341,7 @@ function matchSender(text: string, skipThreats: boolean): { name: string; type: 
     if (!m) continue;
     if (s.name) return { name: s.name, type: s.type };
     if (s.type === "gemeente") {
-      const g = text.match(/\b(Gemeente|Waterschap|Hoogheemraadschap)\s+([A-Z][\wÀ-ÿ'-]+(?:[\s-][A-Z][\wÀ-ÿ'-]+)?)/);
+      const g = text.match(/\b(Gemeente|Waterschap|Hoogheemraadschap)[ \t]+([A-Z][\wÀ-ÿ'-]+(?:[ -](?!Postbus\b)[A-Z][\wÀ-ÿ'-]+)?)/);
       if (g) return { name: `${g[1]} ${g[2]}`, type: "gemeente" };
     }
     // naam: de regel waarin de afzender staat (kort gehouden)

@@ -185,3 +185,17 @@ Wij hebben uw schademelding beoordeeld. Wij vergoeden de schade niet, omdat de s
 Bent u het niet eens met onze beslissing? Dan kunt u een klacht indienen bij onze klachtenafdeling.`,
   expect: { route: "verzekeraar", pay: false },
 });
+
+// Regressie (gevonden met echte foto's): gewone tekst in hoofdletters mag geen "buitenlands IBAN" opleveren,
+// en een gemeentenaam mag niet doorlopen naar de volgende regel.
+CASES.push({
+  name: "WOZ-brief zonder valse nep-waarschuwing",
+  text: `Gemeente Voorbeeldstad
+Postbus 1234, 9700 AA Groningen
+Datum: 31 oktober 2026
+WOZ-BESCHIKKING 2026 VOOR DE WONING AAN DE LINDELAAN 12 TE UTRECHT
+De WOZ-waarde van uw woning aan de Lindelaan 12 is vastgesteld op € 345.000.
+Bent u het niet eens met de WOZ-waarde? Dan kunt u binnen 6 weken na de dagtekening bezwaar maken.
+VOORBEELD TESTBRIEF NIET ECHT VERZONNEN TESTBRIEF OM DE APP BRIEFHULP TE TESTEN`,
+  expect: { scam: false, senderName: /^Gemeente Voorbeeldstad$/, type: "woz" },
+});
