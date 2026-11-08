@@ -37,8 +37,8 @@ const check = (name, cond, extra = "") => {
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 
   // 1. Opstarten: taal kiezen
-  await page.waitForSelector(".lang-btn", { timeout: 60_000 });
-  await page.waitForTimeout(1500);
+  await page.waitForSelector(".lang-btn", { state: "visible", timeout: 60_000 });
+  await page.waitForTimeout(2500);
   await shot("01-taal");
   check("app start op het taalscherm", (await page.$$(".lang-btn")).length >= 13);
   check("draait als native app", await page.evaluate(() => document.documentElement.classList.contains("native-android")));

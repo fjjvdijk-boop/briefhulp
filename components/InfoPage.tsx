@@ -10,7 +10,7 @@ import { I18nProvider, useExtraTexts, useI18n } from "../lib/i18n/context";
 import { useLegalText } from "../lib/legal/i18n";
 import { AllTopics } from "./LegalParts";
 
-const VERSION = "1.0";
+const VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "1.0";
 
 function useLang() {
   const [lang, setLang] = useState("nl");

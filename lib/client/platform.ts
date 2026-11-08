@@ -126,6 +126,9 @@ export async function scheduleDeadlineReminders(opts: { key: string; dateIso: st
       title: opts.title,
       body: opts.body(x.days),
       schedule: { at: x.at },
+      // Gewone (niet-exacte) herinnering: geen extra systeemtoestemming "wekkers" nodig. Een paar minuten
+      // speling rond 9 uur is prima voor een deadline.
+      isExactNotification: false,
     }));
   if (!list.length) return 0;
   await LocalNotifications.cancel({ notifications: [3, 1, 0].map((days) => ({ id: idFor(`${opts.key}:${days}`) })) }).catch(() => {});

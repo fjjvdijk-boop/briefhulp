@@ -97,6 +97,11 @@ Standaard werkt de app **helemaal gratis op het toestel**. Wilt u de knop voor d
 2. Zet in GitHub **Settings → Variables → `API_BASE`** = uw websiteadres, bijv. `https://briefhulp.nl`.
 3. Pas de privacyformulieren aan (zie onderaan `privacy-antwoorden.md`).
 
+## Contactadres in de app
+
+Apple en Google willen dat gebruikers u kunnen bereiken. Maak een apart e-mailadres (bijv. briefhulp.app@gmail.com) en zet het in GitHub:
+**Settings → Secrets and variables → Actions → Variables → New variable** `CONTACT_EMAIL`. Het verschijnt dan op de pagina "Over" in de app. Zet het voor de website ook op Vercel als `NEXT_PUBLIC_CONTACT_EMAIL`.
+
 ## Vóór u indient: checklist
 
 - [ ] Getest op een echte Android-telefoon (APK) en een echte iPhone (TestFlight).
