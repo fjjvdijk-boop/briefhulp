@@ -325,7 +325,7 @@ export function stopSpeech() {
   if (watchdog) clearTimeout(watchdog);
   watchdog = null;
   keep = null;
-  if (isNative()) void nativeTts().then((t) => t.stop()).catch(() => {});
+  if (isNative()) void nativeTts().then(({ tts }) => tts.stop()).catch(() => {});
   else if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
   setCurrent(null);
 }
@@ -336,14 +336,16 @@ export function speechSupported() {
   return isNative() || "speechSynthesis" in window;
 }
 
-const nativeTts = () => import("@capacitor-community/text-to-speech").then((m) => m.TextToSpeech);
+// Let op: een Capacitor-plug-in nooit los uit een promise teruggeven (hij lijkt dan zelf een promise en
+// de app roept "then" aan op de plug-in). Daarom verpakt in een object.
+const nativeTts = () => import("@capacitor-community/text-to-speech").then((m) => ({ tts: m.TextToSpeech }));
 
 /**
  * In de app: de stem van de telefoon via een plug-in. De webweergave van Android kan zelf niet voorlezen,
  * en zo klinkt het op beide systemen hetzelfde als de rest van de telefoon.
  */
 async function runNative(id: number, parts: string[], opts: SpeakOptions) {
-  const tts = await nativeTts();
+  const { tts } = await nativeTts();
   const bcp = speechLang(opts.lang);
   const candidates = [bcp, ...(PREFERRED[opts.lang] ?? []), opts.lang];
   let lang: string | null = null;

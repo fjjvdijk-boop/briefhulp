@@ -65,8 +65,23 @@ const check = (name, cond, extra = "") => {
   const listening = await page.getAttribute(".btn-listen", "aria-pressed");
   const noVoice = await page.$(".no-voice");
   check("voorlezen start (of meldt netjes dat er geen stem is)", listening === "true" || !!noVoice, `aria-pressed=${listening}`);
+  console.log("   voorlezen:", listening === "true" ? "stem van de telefoon spreekt" : noVoice ? "geen stem op dit toestel (melding getoond)" : "?");
   await shot("05-voorlezen");
   if (listening === "true") await page.click(".btn-listen");
+
+  // 3b. Herinnering als melding (toestemming vooraf gegeven)
+  await device.shell(`pm grant ${PKG} android.permission.POST_NOTIFICATIONS`).catch(() => {});
+  const remindBtn = await page.$(".card-deadline .btn-primary[aria-pressed]");
+  check("knop 'Herinner mij' staat in de app", !!remindBtn);
+  if (remindBtn) {
+    await remindBtn.click();
+    await page.waitForSelector(".card-deadline [role=status]", { timeout: 10_000 }).catch(() => {});
+    const msg = (await page.textContent(".card-deadline [role=status]").catch(() => "")) || "";
+    check("herinnering ingepland", /melding/i.test(msg) && (await page.getAttribute(".card-deadline .btn-primary[aria-pressed]", "aria-pressed")) === "true", msg);
+    const alarms = await device.shell(`dumpsys alarm | grep -c ${PKG}`).catch(() => Buffer.from("0"));
+    console.log("   geplande alarmen voor de app:", alarms.toString().trim());
+    await shot("05b-herinnering");
+  }
 
   // 4. Tabbladen
   for (const tab of ["pay", "disagree", "help"]) {
