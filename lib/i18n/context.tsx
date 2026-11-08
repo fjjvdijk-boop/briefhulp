@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext } from "react";
-import { getDict, locale, type Dict } from "./index";
+import { createContext, useContext, useEffect, useState } from "react";
+import { getDict, loadExtra, locale, type Dict } from "./index";
 
 interface I18n {
   lang: string; // taal die de gebruiker koos (kan ook een niet-ingebouwde taal zijn)
@@ -24,3 +24,16 @@ export function I18nProvider({ lang, dict, children }: { lang: string; dict?: Di
 }
 
 export const useI18n = () => useContext(Ctx);
+
+/** Laadt de extra teksten van een taal; het getal verandert als ze binnen zijn (om opnieuw te tekenen). */
+export function useExtraTexts(lang: string) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let live = true;
+    loadExtra(lang).then((loaded) => live && loaded && setN((x) => x + 1));
+    return () => {
+      live = false;
+    };
+  }, [lang]);
+  return n;
+}

@@ -152,6 +152,7 @@ export const pl: Lang = {
     from: "Od:",
     readAloud: "Czytaj na głos",
     stopReading: "Przestań czytać",
+    noVoice: "Twój telefon nie ma głosu do czytania w tym języku. Możesz go dodać za darmo w ustawieniach: Ułatwienia dostępu → Zamiana tekstu na mowę (Android) lub Treść mówiona → Głosy (iPhone).",
     inShort: "W skrócie",
     whatToDo: "Co muszę zrobić?",
     stepLabel: (i, done) => `Krok ${i} ${done ? "zrobiony" : "jeszcze niezrobiony"}`,

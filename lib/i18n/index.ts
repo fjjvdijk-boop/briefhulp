@@ -60,11 +60,46 @@ function merge<T>(base: T, over: Partial<T> | undefined): T {
 }
 
 /** Woordenboek voor een taal. Niet-ingebouwde talen krijgen Engels; ontbrekende stukken vallen terug op Engels. */
+/**
+ * Rechten, antwoordbrieven, privacy en "over" staan per taal in lib/i18n/extra/<taal>.ts. Die worden pas
+ * geladen als de taal gekozen is (kleinere app). Tot die tijd: Engels als reserve.
+ */
+const EXTRA: Record<string, Partial<Dict>> = {};
+const EXTRA_LOADERS: Record<string, () => Promise<{ extra: Partial<Dict> }>> = {
+  ar: () => import("./extra/ar"),
+  tr: () => import("./extra/tr"),
+  pl: () => import("./extra/pl"),
+  uk: () => import("./extra/uk"),
+  ru: () => import("./extra/ru"),
+  ro: () => import("./extra/ro"),
+  es: () => import("./extra/es"),
+  fr: () => import("./extra/fr"),
+  fa: () => import("./extra/fa"),
+  so: () => import("./extra/so"),
+  pt: () => import("./extra/pt"),
+};
+export const EXTRA_LANGS = Object.keys(EXTRA_LOADERS);
+
+export function registerExtra(code: string, extra: Partial<Dict>) {
+  EXTRA[code] = extra;
+}
+
+/** Laadt de extra teksten van een taal. Geeft true als er iets nieuws geladen is. */
+export async function loadExtra(code: string): Promise<boolean> {
+  if (EXTRA[code] || !EXTRA_LOADERS[code]) return false;
+  try {
+    EXTRA[code] = (await EXTRA_LOADERS[code]()).extra;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function getDict(code: string): Dict {
   const lang = BUILT_IN[code];
   if (code === "nl") return nl;
   if (!lang) return en;
-  return merge(en, lang as Partial<Dict>);
+  return merge(merge(en, lang as Partial<Dict>), EXTRA[code]);
 }
 
 const RTL = new Set(["ar", "fa", "he", "ur", "ps", "yi", "dv", "ug", "ckb", "sd", "prs", "syr", "aii", "arc", "ks", "ug", "nqo", "ff-Adlm"]);

@@ -3,23 +3,33 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "./Icon";
-import { getDict } from "../lib/i18n";
-import { I18nProvider } from "../lib/i18n/context";
+import { getDict, isBuiltIn, isRtl } from "../lib/i18n";
+import type { Dict } from "../lib/i18n";
+import { dictFromTranslation, loadCachedTranslation } from "../lib/i18n/autotranslate";
+import { I18nProvider, useExtraTexts, useI18n } from "../lib/i18n/context";
+import { useLegalText } from "../lib/legal/i18n";
 import { AllTopics } from "./LegalParts";
 
 const VERSION = "1.0";
 
 function useLang() {
   const [lang, setLang] = useState("nl");
+  const [auto, setAuto] = useState<Dict | null>(null);
   useEffect(() => {
     try {
       const p = JSON.parse(localStorage.getItem("briefhulp:prefs:v2") || "{}");
-      if (typeof p.lang === "string") setLang(p.lang);
+      if (typeof p.lang === "string") {
+        setLang(p.lang);
+        // Taal die de telefoon zelf vertaalde: gebruik die bewaarde vertaling
+        const cached = !isBuiltIn(p.lang) ? loadCachedTranslation(p.lang) : null;
+        if (cached) setAuto(dictFromTranslation(p.lang, p.langName ?? p.lang, p.langRtl ?? isRtl(p.lang), cached));
+      }
     } catch {
       /* standaard Nederlands */
     }
   }, []);
-  const t = getDict(lang);
+  useExtraTexts(lang);
+  const t = auto ?? getDict(lang);
   useEffect(() => {
     document.documentElement.lang = t.code;
     document.documentElement.dir = t.dir;
@@ -120,7 +130,7 @@ export function RightsPage() {
       <I18nProvider lang={t.code} dict={t}>
         <h1 className="title">{t.legal.pageTitle}</h1>
         <p className="lead">{t.legal.pageIntro}</p>
-        {t.code !== "nl" && t.code !== "en" && <p className="hint">{t.legal.contentLang}</p>}
+        <RightsFallbackNote />
         <AllTopics />
         <Link href="/" className="btn btn-primary">
           Briefhulp
@@ -128,4 +138,10 @@ export function RightsPage() {
       </I18nProvider>
     </Shell>
   );
+}
+
+function RightsFallbackNote() {
+  const lt = useLegalText();
+  const { t } = useI18n();
+  return lt.fallback ? <p className="hint">{t.legal.contentLang}</p> : null;
 }

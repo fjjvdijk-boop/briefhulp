@@ -3,8 +3,9 @@
 // Het resultaat wordt bewaard, zodat het maar één keer hoeft.
 import { en } from "./en";
 import type { Dict } from "./nl";
+import LEGAL_KEYS from "../legal/tr/keys.json";
 
-const VERSION = 3; // ophogen als de teksten veranderen
+const VERSION = 4; // ophogen als de teksten veranderen
 const KEY = (lang: string) => `briefhulp:dict:${lang}:v${VERSION}`;
 
 interface TranslatorLike {
@@ -169,6 +170,8 @@ export async function translateApp(lang: string, onProgress: (fraction: number) 
   }), 180_000); // eenmalige download van het taalmodel mag even duren
   const flat: Flat = {};
   flatten(en, "", flat);
+  // Ook de kennisbank "Uw rechten" en de stappenplannen (zie lib/legal/i18n.ts)
+  (LEGAL_KEYS as string[]).forEach((k, i) => (flat[`legal#${i}`] = k));
   const entries = Object.entries(flat);
   const out: Flat = {};
   let done = 0;

@@ -164,6 +164,7 @@ export const nl = {
     from: "Van:",
     readAloud: "Lees voor",
     stopReading: "Stop met voorlezen",
+    noVoice: "Uw telefoon heeft geen voorleesstem voor deze taal. U kunt er gratis een toevoegen in de instellingen: Toegankelijkheid → Tekst naar spraak (Android) of Gesproken materiaal → Stemmen (iPhone).",
     inShort: "In het kort",
     whatToDo: "Wat moet ik doen?",
     stepLabel: (i: number, done: boolean) => `Stap ${i} ${done ? "gedaan" : "nog niet gedaan"}`,

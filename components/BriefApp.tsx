@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "./Icon";
 import { Result } from "./Result";
@@ -15,7 +15,7 @@ import { explainLocally } from "../lib/client/rules";
 import { sampleLetterText, sampleLetters } from "../lib/sample";
 import { getDict, isBuiltIn, isRtl, locale as toLocale, type Dict, type LangInfo } from "../lib/i18n";
 import { dictFromTranslation, loadCachedTranslation, translateApp } from "../lib/i18n/autotranslate";
-import { I18nProvider, useI18n } from "../lib/i18n/context";
+import { I18nProvider, useExtraTexts, useI18n } from "../lib/i18n/context";
 import type { Analysis } from "../lib/types";
 
 type Screen = "language" | "translating" | "welcome" | "home" | "pages" | "loading" | "result" | "error";
@@ -83,7 +83,8 @@ export default function BriefApp() {
   const abortRef = useRef<AbortController | null>(null);
 
   const lang = prefs.lang ?? "nl";
-  const t = !isBuiltIn(lang) && autoDict ? autoDict : getDict(lang);
+  const extraVersion = useExtraTexts(lang);
+  const t = useMemo(() => (!isBuiltIn(lang) && autoDict ? autoDict : getDict(lang)), [lang, autoDict, extraVersion]); // eslint-disable-line react-hooks/exhaustive-deps
   const uiLang = t.code === "en" && lang !== "en" ? "en" : lang;
   const notTranslated = !isBuiltIn(lang) && !autoDict && !!prefs.lang;
   const loc = safeLocale(toLocale(uiLang));

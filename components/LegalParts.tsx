@@ -8,7 +8,8 @@ import { useI18n } from "../lib/i18n/context";
 import { formatDateLong, daysUntil } from "../lib/client/calendar";
 import { collectLinks, epcPayload, officialSite, paymentSafe } from "../lib/client/pay";
 import { CHECKED, TOPICS, topicById, type Topic, type TopicId } from "../lib/legal/topics";
-import { disagreeRoute, L } from "../lib/legal/route";
+import { disagreeRoute } from "../lib/legal/route";
+import { useLegalText } from "../lib/legal/i18n";
 import type { Analysis } from "../lib/types";
 
 /* ---------------------------------------------------------------------------------------------
@@ -101,7 +102,8 @@ export function PayHelp({ analysis: a, letterText, qrCodes }: { analysis: Analys
  * "Ik ben het er niet mee eens": stappenplan bij deze brief, met datum en knop naar de brief.
  * ------------------------------------------------------------------------------------------- */
 export function DisagreePlan({ analysis: a, typeKey }: { analysis: Analysis; typeKey: string }) {
-  const { t, lang, locale } = useI18n();
+  const { t, locale } = useI18n();
+  const lt = useLegalText();
   const g = t.legal;
   const route = disagreeRoute(a, typeKey);
   return (
@@ -109,17 +111,17 @@ export function DisagreePlan({ analysis: a, typeKey }: { analysis: Analysis; typ
       <h2 className="card-title">
         <Icon name="help" /> {g.disagreeTitle}
       </h2>
-      <p>{L(route.intro, lang)}</p>
-      {lang !== "nl" && lang !== "en" && <p className="hint">{g.contentLang}</p>}
-      <ol className="route-steps">
+      <p>{lt.tx(route.intro)}</p>
+      {lt.fallback && <p className="hint">{g.contentLang}</p>}
+      <ol className="route-steps" lang={lt.lang}>
         {route.steps.map((st, i) => {
           const days = st.deadline ? daysUntil(st.deadline) : null;
           return (
             <li key={i}>
               <span className="route-dot" aria-hidden="true" />
               <div>
-                <h3>{L(st.title, lang)}</h3>
-                <p>{L(st.text, lang)}</p>
+                <h3>{lt.tx(st.title)}</h3>
+                <p>{lt.tx(st.text)}</p>
                 {st.deadline && days !== null && days >= 0 && (
                   <p className={`route-deadline ${days <= 14 ? "soon" : ""}`}>
                     <Icon name="calendar" size={18} /> {g.by(formatDateLong(st.deadline, locale))}
@@ -140,16 +142,17 @@ export function DisagreePlan({ analysis: a, typeKey }: { analysis: Analysis; typ
  * Rechten: uitklapbare onderwerpen uit de kennisbank, met bronnen.
  * ------------------------------------------------------------------------------------------- */
 export function TopicCard({ topic, open }: { topic: Topic; open?: boolean }) {
-  const { t, lang } = useI18n();
+  const { t, locale } = useI18n();
+  const lt = useLegalText();
   const g = t.legal;
-  const pts = lang === "nl" ? topic.points.nl : topic.points.en;
+  const pts = lt.list(topic.points);
   return (
     <details className="topic" open={open}>
       <summary>
-        <span>{L(topic.title, lang)}</span>
+        <span>{lt.tx(topic.title)}</span>
       </summary>
-      <div className="topic-body" lang={lang === "nl" ? "nl" : "en"}>
-        <p>{L(topic.summary, lang)}</p>
+      <div className="topic-body" lang={lt.lang}>
+        <p>{lt.tx(topic.summary)}</p>
         <ul className="bullets">
           {pts.map((p) => (
             <li key={p}>{p}</li>
@@ -159,7 +162,7 @@ export function TopicCard({ topic, open }: { topic: Topic; open?: boolean }) {
         <ul className="topic-where">
           {topic.where.map((w) => (
             <li key={w.name}>
-              <strong>{w.name}</strong>
+              <strong>{lt.name(w.name)}</strong>
               {w.contact && /\d/.test(w.contact) ? (
                 <a href={`tel:${w.contact.replace(/[^\d+]/g, "")}`} dir="ltr">
                   {" "}
@@ -186,7 +189,7 @@ export function TopicCard({ topic, open }: { topic: Topic; open?: boolean }) {
               </a>
             </span>
           ))}
-          . {g.checked(formatDateLong(CHECKED, lang === "nl" ? "nl-NL" : "en-GB"))}
+          . {g.checked(formatDateLong(CHECKED, locale))}
         </p>
       </div>
     </details>
@@ -194,7 +197,8 @@ export function TopicCard({ topic, open }: { topic: Topic; open?: boolean }) {
 }
 
 export function RightsList({ ids }: { ids: TopicId[] }) {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
+  const lt = useLegalText();
   const g = t.legal;
   return (
     <section className="card card-rights">
@@ -202,7 +206,7 @@ export function RightsList({ ids }: { ids: TopicId[] }) {
         <Icon name="info" /> {g.rightsTitle}
       </h2>
       <p className="hint">{g.rightsIntro}</p>
-      {lang !== "nl" && lang !== "en" && <p className="hint">{g.contentLang}</p>}
+      {lt.fallback && <p className="hint">{g.contentLang}</p>}
       <div className="topics">
         {ids.map((id) => (
           <TopicCard key={id} topic={topicById(id)} />

@@ -12,6 +12,7 @@ import { useI18n } from "../lib/i18n/context";
 import { isRtl } from "../lib/i18n";
 import type { Dict } from "../lib/i18n/nl";
 import type { Analysis, Urgency } from "../lib/types";
+import { isSpeaking, letterToSpeech, loadVoices, onSpeechChange, speak, stopSpeech } from "../lib/client/speech";
 
 const URGENCY_ICON: Record<Urgency, string> = { rood: "alert", oranje: "clock", groen: "check" };
 type Tab = "overview" | "pay" | "disagree" | "help";
@@ -133,12 +134,12 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
           <ReadAloud
             label={t.result.readAloud}
             stopLabel={t.result.stopReading}
-            lang={isLocal ? (t.code === "nl" ? "nl-NL" : t.code) : lang === "nl" ? "nl-NL" : lang}
+            lang={isLocal ? t.code : lang}
             parts={[
               a.headline,
               a.summary,
               t.result.whatToDo,
-              ...a.actions.map((s, i) => `${i + 1}. ${s.step}. ${s.detail ?? ""}`),
+              ...a.actions.map((s, i) => `${i + 1}. ${s.step.replace(/[.!?]?$/, ".")} ${s.detail ?? ""}`),
               a.deadline.date ? `${t.result.deadline}: ${formatDateLong(a.deadline.date, locale)}.` : "",
             ]}
           />
@@ -406,7 +407,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
         <details className="card fold">
           <summary className="card-title">{t.result.letterText}</summary>
           <p className="hint">{t.result.letterTextHint}</p>
-          <ReadAloud label={t.result.readLetter} stopLabel={t.result.stopReading} lang="nl-NL" parts={splitForSpeech(letterText)} small />
+          <ReadAloud label={t.result.readLetter} stopLabel={t.result.stopReading} lang="nl" parts={[letterText]} letter small />
           <pre className="letter-text" lang="nl" dir="ltr">
             {letterText}
           </pre>
@@ -481,14 +482,6 @@ function shortDate(iso: string, locale: string) {
   return new Date(y, m - 1, d).toLocaleDateString(locale, { day: "numeric", month: "long" });
 }
 
-function splitForSpeech(text: string) {
-  return text
-    .replace(/--- volgende bladzijde ---/g, ".")
-    .split(/\n{2,}/)
-    .map((p) => p.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
-}
-
 function HelpContact({ text }: { text: string }) {
   const phone = /^[\d\s\-+()]{8,}$/.test(text.trim());
   const web = /^[\w.-]+\.(nl|com|org|eu)(\/\S*)?$/i.test(text.trim());
@@ -542,45 +535,44 @@ function CopyRow({ label, value, important, iban, verified }: { label: string; v
   );
 }
 
-function ReadAloud({ label, stopLabel, lang, parts, small }: { label: string; stopLabel: string; lang: string; parts: string[]; small?: boolean }) {
-  const [speaking, setSpeaking] = useState(false);
+function ReadAloud({ label, stopLabel, lang, parts, small, letter }: { label: string; stopLabel: string; lang: string; parts: string[]; small?: boolean; letter?: boolean }) {
+  const { t } = useI18n();
+  const [active, setActive] = useState(false);
   const [supported, setSupported] = useState(false);
+  const [noVoice, setNoVoice] = useState(false);
+  const idRef = useRef<number | null>(null);
   useEffect(() => {
     setSupported("speechSynthesis" in window);
+    loadVoices(); // alvast laden, dan start het voorlezen direct
+    const off = onSpeechChange((cur) => setActive(cur !== null && cur === idRef.current));
     return () => {
-      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      off();
+      if (isSpeaking(idRef.current)) stopSpeech();
     };
   }, []);
+  useEffect(() => setNoVoice(false), [lang]);
   if (!supported) return null;
 
   const toggle = () => {
-    const synth = window.speechSynthesis;
-    if (speaking) {
-      synth.cancel();
-      setSpeaking(false);
-      return;
-    }
-    const list = parts.filter(Boolean);
-    synth.cancel();
-    const voices = synth.getVoices();
-    const voice = voices.find((v) => v.lang === lang) ?? voices.find((v) => v.lang.toLowerCase().startsWith(lang.slice(0, 2).toLowerCase()));
-    list.forEach((text, i) => {
-      const utt = new SpeechSynthesisUtterance(text);
-      utt.lang = lang;
-      if (voice) utt.voice = voice;
-      utt.rate = 0.9;
-      if (i === list.length - 1) utt.onend = () => setSpeaking(false);
-      utt.onerror = () => setSpeaking(false);
-      synth.speak(utt);
-    });
-    setSpeaking(true);
+    if (active) return stopSpeech();
+    setNoVoice(false);
+    const list = letter ? parts.flatMap((p) => letterToSpeech(p)) : parts;
+    idRef.current = speak(list, { lang, onNoVoice: () => setNoVoice(true) });
+    setActive(isSpeaking(idRef.current));
   };
 
   return (
-    <button className={`btn btn-listen ${speaking ? "on" : ""} ${small ? "btn-small" : ""}`} onClick={toggle} aria-pressed={speaking}>
-      <Icon name={speaking ? "stop" : "speaker"} />
-      <span>{speaking ? stopLabel : label}</span>
-    </button>
+    <>
+      <button className={`btn btn-listen ${active ? "on" : ""} ${small ? "btn-small" : ""}`} onClick={toggle} aria-pressed={active}>
+        <Icon name={active ? "stop" : "speaker"} />
+        <span>{active ? stopLabel : label}</span>
+      </button>
+      {noVoice && (
+        <p className="hint no-voice" role="status">
+          {t.result.noVoice}
+        </p>
+      )}
+    </>
   );
 }
 

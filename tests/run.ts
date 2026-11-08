@@ -1,6 +1,33 @@
 // Draait alle testbrieven door de gratis uitleg en laat zien wat goed en fout gaat.
 import { explainLocally } from "../lib/client/rules";
-import { getDict, BUILT_IN_ORDER } from "../lib/i18n";
+import { getDict, BUILT_IN_ORDER, registerExtra } from "../lib/i18n";
+import { extra as arX } from "../lib/i18n/extra/ar";
+import { extra as trX } from "../lib/i18n/extra/tr";
+import { extra as plX } from "../lib/i18n/extra/pl";
+import { extra as ukX } from "../lib/i18n/extra/uk";
+import { extra as ruX } from "../lib/i18n/extra/ru";
+import { extra as roX } from "../lib/i18n/extra/ro";
+import { extra as esX } from "../lib/i18n/extra/es";
+import { extra as frX } from "../lib/i18n/extra/fr";
+import { extra as faX } from "../lib/i18n/extra/fa";
+import { extra as soX } from "../lib/i18n/extra/so";
+import { extra as ptX } from "../lib/i18n/extra/pt";
+Object.entries({ ar: arX, tr: trX, pl: plX, uk: ukX, ru: ruX, ro: roX, es: esX, fr: frX, fa: faX, so: soX, pt: ptX }).forEach(([c, x]) => registerExtra(c, x));
+import { legalKeys } from "../scripts/legal-strings";
+import LEGAL_KEYS_JSON from "../lib/legal/tr/keys.json";
+import ar from "../lib/legal/tr/ar";
+import trL from "../lib/legal/tr/tr";
+import pl from "../lib/legal/tr/pl";
+import uk from "../lib/legal/tr/uk";
+import ru from "../lib/legal/tr/ru";
+import ro from "../lib/legal/tr/ro";
+import es from "../lib/legal/tr/es";
+import fr from "../lib/legal/tr/fr";
+import fa from "../lib/legal/tr/fa";
+import so from "../lib/legal/tr/so";
+import pt from "../lib/legal/tr/pt";
+const LEGAL_TR = { ar, tr: trL, pl, uk, ru, ro, es, fr, fa, so, pt };
+import { chunkText, letterToSpeech, pickVoice, prepareForSpeech } from "../lib/client/speech";
 import { CASES, TODAY } from "./letters";
 import { routeKind, relevantTopics, disagreeRoute } from "../lib/legal/route";
 import { TOPICS } from "../lib/legal/topics";
@@ -93,6 +120,79 @@ for (const code of BUILT_IN_ORDER) {
     failed++;
     fails.push("  ✗ CJIB-linkcontrole");
   }
+}
+
+// ---------- Vertalingen kennisbank en stappenplannen: compleet en actueel ----------
+{
+  const keysNow = legalKeys();
+  const stored = LEGAL_KEYS_JSON as string[];
+  if (JSON.stringify(keysNow) === JSON.stringify(stored)) passed++;
+  else {
+    failed++;
+    fails.push("  ✗ lib/legal/tr/keys.json is verouderd: draai `npx tsx scripts/legal-strings.ts > lib/legal/tr/keys.json` en werk de vertalingen bij");
+  }
+  for (const [code, mod] of Object.entries(LEGAL_TR)) {
+    const m = mod as Record<string, string> & { __count?: number };
+    const missing = stored.filter((k) => !m[k]);
+    const sameAsEn = stored.filter((k) => m[k] === k && !/^(Kifid|CJIB|Geldfit)$/.test(k));
+    if (m.__count === stored.length && !missing.length && sameAsEn.length === 0) passed++;
+    else {
+      failed++;
+      fails.push(`  ✗ vertaling kennisbank ${code}: ${m.__count}/${stored.length} teksten, ${missing.length} ontbreken, ${sameAsEn.length} onvertaald`);
+    }
+  }
+  // De rest van de app per taal: rechten, antwoordbrieven, privacy en "over" niet meer in het Engels
+  const en = getDict("en");
+  for (const code of BUILT_IN_ORDER.filter((c) => c !== "nl" && c !== "en")) {
+    const d = getDict(code);
+    const same = (["reply", "legal", "privacyPage", "aboutPage"] as const).filter(
+      (k) => JSON.stringify(d[k], (_, v) => (typeof v === "function" ? String(v) : v)) === JSON.stringify(en[k], (_, v) => (typeof v === "function" ? String(v) : v)),
+    );
+    if (!same.length && d.legal.pageTitle !== en.legal.pageTitle && d.reply.title !== en.reply.title) passed++;
+    else {
+      failed++;
+      fails.push(`  ✗ ${code}: nog Engels in ${same.join(", ") || "legal/reply"}`);
+    }
+  }
+}
+
+// ---------- Voorlezen: tekst omschrijven en opknippen ----------
+{
+  const eq = (name: string, got: unknown, want: unknown) => {
+    if (JSON.stringify(got) === JSON.stringify(want)) passed++;
+    else {
+      failed++;
+      fails.push(`  ✗ voorlezen ${name}: kreeg ${JSON.stringify(got)}, verwacht ${JSON.stringify(want)}`);
+    }
+  };
+  eq("bedrag nl", prepareForSpeech("U moet € 1.250,40 betalen.", "nl"), "U moet 1250 euro 40 betalen.");
+  eq("bedrag rond", prepareForSpeech("Totaal € 165,00", "nl"), "Totaal 165 euro");
+  eq("bedrag en", prepareForSpeech("Pay € 192,40.", "en"), "Pay 192 euros and 40.");
+  eq("bedrag ar", prepareForSpeech("€ 50,00", "ar"), "50 يورو");
+  eq("telefoon", prepareForSpeech("Bel 0800 - 8020.", "nl"), "Bel 0 8 0 0, 8 0 2 0.");
+  eq("iban", prepareForSpeech("NL44 RABO 0123 4567 89", "nl"), "N L 4 4, R A B O, 0 1 2 3, 4 5 6 7, 8 9");
+  eq("datum blijft", prepareForSpeech("Datum 01-02-2026.", "nl"), "Datum 01-02-2026.");
+  eq("afkorting", prepareForSpeech("Betaal z.s.m., bijv. via iDEAL t/m 3 mei.", "nl"), "Betaal zo snel mogelijk, bijvoorbeeld via iDEAL tot en met 3 mei.");
+  eq("bedrag ar-notatie", prepareForSpeech("يجب أن تدفع \u200f187.40 € الآن", "ar"), "يجب أن تدفع 187 يورو و 40 الآن");
+  eq("bedrag fa-cijfers", prepareForSpeech("۱۸۷٫۴۰ €", "fa"), "187 یورو و 40");
+  eq("webadres", prepareForSpeech("Kijk op www.cjib.nl/betalen.", "nl"), "Kijk op cjib punt nl betalen.");
+  eq("e-mail blijft", prepareForSpeech("Mail info@noordpunt.nl", "nl").includes("noordpunt punt nl"), true);
+  eq("haakjes kort", prepareForSpeech("Aanmaning: u heeft nog niet (alles) betaald.", "nl"), "Aanmaning: u heeft nog niet alles betaald.");
+  eq("haakjes lang", prepareForSpeech("Brief van Noordpunt (namens Zorgverzekeraar Zuidhaven).", "nl"), "Brief van Noordpunt, namens Zorgverzekeraar Zuidhaven.");
+  eq("emoji weg", prepareForSpeech("⚠️ Let op → nu", "nl"), "Let op nu");
+  eq("afgebroken woord", letterToSpeech("Wij vragen om beta-\nling van de rekening"), ["Wij vragen om betaling van de rekening."]);
+  eq("adresregels", letterToSpeech("Gemeente Voorbeeldstad\nPostbus 12"), ["Gemeente Voorbeeldstad. Postbus 12."]);
+  const long = "Dit is een heel lange zin, met veel komma's, die maar doorgaat en doorgaat, zodat de stem van Chrome hem anders zou afbreken na vijftien seconden, en daarom knippen we hem netjes op bij een komma, zodat het vloeiend blijft klinken.";
+  const parts = chunkText(long, "nl");
+  eq("opknippen", parts.every((p) => p.length <= 170) && parts.join(" ").replace(/\s+/g, " ") === long, true);
+  eq("korte zinnen samen", chunkText("Ja. Nee. Misschien.", "nl"), ["Ja. Nee. Misschien."]);
+  // Stemkeuze: mooiste stem voor de taal
+  const v = (name: string, lang: string) => ({ name, lang, default: false, localService: true, voiceURI: name }) as SpeechSynthesisVoice;
+  const voices = [v("Xander", "nl-NL"), v("Microsoft Fenna Online (Natural) - Dutch (Netherlands)", "nl-NL"), v("Google العربية", "ar-SA"), v("eSpeak Polish", "pl")];
+  eq("stem nl", pickVoice(voices, "nl")?.name, "Microsoft Fenna Online (Natural) - Dutch (Netherlands)");
+  eq("stem ar", pickVoice(voices, "ar")?.lang, "ar-SA");
+  eq("stem pl (alleen eenvoudig)", pickVoice(voices, "pl")?.lang, "pl");
+  eq("geen stem so", pickVoice(voices, "so"), null);
 }
 
 console.log(fails.join("\n"));
