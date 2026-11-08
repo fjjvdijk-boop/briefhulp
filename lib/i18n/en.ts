@@ -454,6 +454,7 @@ export const en: Dict = {
       "The free explanation happens on your own phone. Your photo is not sent anywhere.",
       "We store no photos and no explanations. We use no ads and no tracking cookies.",
       "Your phone only stores your settings, and My deadlines if you choose to.",
+      "In the app, Briefhulp only asks permission for the camera (photo of the letter) and notifications (deadline reminder). You can refuse both.",
     ],
     aiTitle: "Full explanation (only if you choose it)",
     ai: "If this button is available and you press it, your photo is sent securely to our server and straight on to Claude, the AI of the company Anthropic (United States). Anthropic does not use this data to train its AI and only keeps it for a short time, according to its own privacy policy. Our server stores nothing.",

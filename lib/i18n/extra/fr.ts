@@ -89,6 +89,7 @@ export const extra: Extra = {
       "L'explication gratuite se fait sur votre propre téléphone. Votre photo n'est envoyée nulle part.",
       "Nous ne gardons ni photos ni explications. Pas de publicité ni de cookies de suivi.",
       "Votre téléphone garde seulement vos réglages et, si vous le voulez, Mes échéances.",
+      "Dans l'appli, Briefhulp demande seulement l'accès à l'appareil photo (photo de la lettre) et aux notifications (rappel d'échéance). Vous pouvez refuser les deux.",
     ],
     aiTitle: "Explication complète (seulement si vous la choisissez)",
     ai: "Si ce bouton est disponible et que vous appuyez dessus, votre photo est envoyée de façon sécurisée à notre serveur, puis directement à Claude, l'IA de la société Anthropic (États-Unis). Anthropic n'utilise pas ces données pour entraîner son IA et ne les garde que peu de temps, selon sa propre politique de confidentialité. Notre serveur ne garde rien.",

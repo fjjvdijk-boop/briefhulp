@@ -89,6 +89,7 @@ export const extra: Extra = {
       "Sharaxaadda bilaashka ah waxay ka dhacdaa telefoonkaaga. Sawirkaaga meelna looma diro.",
       "Ma kaydinno sawirro ama sharaxaado. Ma isticmaalno xayeysiis ama cookies raadraac ah.",
       "Telefoonkaagu wuxuu kaydiyaa kaliya dejintaada, iyo haddii aad rabto, Waqtiyadayda.",
+      "App-ka gudihiisa, Briefhulp wuxuu oggolaansho u weydiistaa kaliya kamarada (sawirka warqadda) iyo ogeysiisyada (xusuusinta waqtiga). Labadaba waad diidi kartaa.",
     ],
     aiTitle: "Sharaxaad buuxda (kaliya haddii aad doorato)",
     ai: "Haddii badhankan uu jiro oo aad riixdo, sawirkaaga si ammaan ah ayaa loogu diraa server-kayaga, kadibna toos ugu Claude, AI-ga shirkadda Anthropic (Mareykanka). Anthropic xogtan uma isticmaasho tababarka AI-gooda, waqti gaaban oo kaliya ayay haysaa, sida ku cad siyaasaddooda asturnaanta. Server-kayagu waxba ma kaydiyo.",

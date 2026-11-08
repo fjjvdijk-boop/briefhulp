@@ -89,6 +89,7 @@ export const extra: Extra = {
       "Bezpłatne wyjaśnienie powstaje na Twoim telefonie. Zdjęcie nie jest nigdzie wysyłane.",
       "Nie przechowujemy zdjęć ani wyjaśnień. Nie używamy reklam ani śledzących plików cookie.",
       "Telefon zapisuje tylko Twoje ustawienia oraz, jeśli chcesz, Moje terminy.",
+      "W aplikacji Briefhulp prosi tylko o dostęp do aparatu (zdjęcie listu) i powiadomień (przypomnienie o terminie). Możesz odmówić obu.",
     ],
     aiTitle: "Pełne wyjaśnienie (tylko jeśli je wybierzesz)",
     ai: "Jeśli ten przycisk jest dostępny i go naciśniesz, zdjęcie zostanie bezpiecznie wysłane na nasz serwer i od razu dalej do Claude, sztucznej inteligencji firmy Anthropic (USA). Anthropic nie używa tych danych do trenowania swojej AI i przechowuje je tylko krótko, zgodnie z własną polityką prywatności. Nasz serwer niczego nie zapisuje.",

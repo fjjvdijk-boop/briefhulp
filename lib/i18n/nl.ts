@@ -461,6 +461,7 @@ export const nl = {
       "De gratis uitleg gebeurt op uw eigen telefoon. Uw foto wordt dan nergens naartoe gestuurd.",
       "Wij bewaren geen foto's en geen uitleg. Wij gebruiken geen reclame en geen volg-cookies.",
       "Uw telefoon bewaart alleen uw instellingen, en Mijn deadlines als u daarvoor kiest.",
+      "In de app vraagt Briefhulp alleen toestemming voor de camera (foto van de brief) en voor meldingen (herinnering aan een deadline). U kunt allebei weigeren.",
     ],
     aiTitle: "Volledige uitleg (alleen als u daarvoor kiest)",
     ai: "Als deze knop er is en u erop drukt, gaat uw foto beveiligd naar onze server en direct door naar Claude, de AI van het bedrijf Anthropic (Verenigde Staten). Anthropic gebruikt deze gegevens niet om zijn AI te trainen en bewaart ze alleen korte tijd, volgens zijn eigen privacybeleid. Onze server bewaart niets.",

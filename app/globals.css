@@ -3055,3 +3055,10 @@ h1, h2, h3, h4, .card-title, .topic summary, .btn span, .help-list strong, .fact
   flex: 0 1 auto;
   max-width: 100%;
 }
+/* Taalnamen nooit met een afbreekstreepje */
+.lang-native,
+.lang-en,
+.lang-row span {
+  hyphens: manual;
+  overflow-wrap: break-word;
+}

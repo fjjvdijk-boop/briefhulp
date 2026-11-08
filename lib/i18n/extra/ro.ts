@@ -89,6 +89,7 @@ export const extra: Extra = {
       "Explicația gratuită se face pe propriul telefon. Fotografia nu este trimisă nicăieri.",
       "Nu păstrăm fotografii sau explicații. Nu folosim reclame sau cookie-uri de urmărire.",
       "Telefonul păstrează doar setările dvs. și, dacă doriți, Termenele mele.",
+      "În aplicație, Briefhulp cere permisiune doar pentru cameră (fotografia scrisorii) și notificări (memento pentru termen). Le puteți refuza pe amândouă.",
     ],
     aiTitle: "Explicație completă (doar dacă o alegeți)",
     ai: "Dacă acest buton este disponibil și îl apăsați, fotografia este trimisă în siguranță la serverul nostru și direct mai departe la Claude, inteligența artificială a companiei Anthropic (SUA). Anthropic nu folosește aceste date pentru a-și antrena AI-ul și le păstrează doar scurt timp, conform propriei politici de confidențialitate. Serverul nostru nu păstrează nimic.",

@@ -89,6 +89,7 @@ export const extra: Extra = {
       "Ücretsiz açıklama kendi telefonunuzda yapılır. Fotoğrafınız hiçbir yere gönderilmez.",
       "Fotoğraf ve açıklama saklamıyoruz. Reklam ve takip çerezi kullanmıyoruz.",
       "Telefonunuz sadece ayarlarınızı ve isterseniz Son tarihlerimi saklar.",
+      "Uygulamada Briefhulp yalnızca kamera (mektubun fotoğrafı) ve bildirimler (son tarih hatırlatması) için izin ister. İkisini de reddedebilirsiniz.",
     ],
     aiTitle: "Tam açıklama (sadece siz seçerseniz)",
     ai: "Bu düğme varsa ve ona basarsanız, fotoğrafınız güvenli bir şekilde sunucumuza ve oradan doğrudan Anthropic şirketinin (ABD) yapay zekâsı Claude'a gönderilir. Anthropic bu verileri yapay zekâsını eğitmek için kullanmaz ve kendi gizlilik politikasına göre sadece kısa süre saklar. Sunucumuz hiçbir şey saklamaz.",
