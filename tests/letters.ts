@@ -199,3 +199,158 @@ Bent u het niet eens met de WOZ-waarde? Dan kunt u binnen 6 weken na de dagteken
 VOORBEELD TESTBRIEF NIET ECHT VERZONNEN TESTBRIEF OM DE APP BRIEFHULP TE TESTEN`,
   expect: { scam: false, senderName: /^Gemeente Voorbeeldstad$/, type: "woz" },
 });
+
+// ---------- Ronde 4: tien nieuwe soorten brieven (met geldige, verzonnen rekeningnummers) ----------
+CASES.push(
+  {
+    name: "DUO terugbetalen studieschuld",
+    text: `Dienst Uitvoering Onderwijs
+Postbus 50061, 9702 EB Groningen
+Datum: 2 november 2026
+Relatienummer: 123456789
+Onderwerp: Aflossing studieschuld
+Geachte heer Jansen,
+Vanaf 1 januari 2027 moet u uw studieschuld terugbetalen. Uw maandbedrag is € 87,35.
+Het bedrag wordt maandelijks automatisch afgeschreven van uw rekening.
+Kunt u dit bedrag niet betalen? Vraag dan een draagkrachtmeting aan via Mijn DUO.
+Met vriendelijke groet,
+DUO`,
+    expect: { sender: "duo", pay: false, urgency: "groen", route: "overheid" },
+  },
+  {
+    name: "SVB AOW toekenning",
+    text: `Sociale Verzekeringsbank
+Postbus 1100, 1180 BH Amstelveen
+Datum 28 oktober 2026
+Besluit over uw AOW-pensioen
+Geachte mevrouw Bakker,
+U krijgt vanaf 14 december 2026 AOW-pensioen. U krijgt € 1.212,47 bruto per maand.
+Bent u het niet eens met dit besluit? Dan kunt u binnen 6 weken bezwaar maken.
+Met vriendelijke groet,
+Sociale Verzekeringsbank`,
+    expect: { sender: "svb", pay: false, urgency: "groen", objection: true, route: "overheid" },
+  },
+  {
+    name: "CAK bestuursrechtelijke premie",
+    text: `CAK
+Postbus 84020, 2508 AA Den Haag
+Datum: 30 oktober 2026
+Bestuursrechtelijke premie Zvw
+Geachte heer El Amrani,
+Uw zorgverzekeraar heeft u bij ons aangemeld omdat u 6 maanden uw premie niet heeft betaald.
+U betaalt nu een bestuursrechtelijke premie van € 189,15 per maand aan het CAK.
+Wij houden dit bedrag in op uw loon of uitkering.
+Neem contact op met uw zorgverzekeraar om een betalingsregeling te treffen.
+Met vriendelijke groet,
+CAK`,
+    expect: { senderName: /^CAK$/, pay: false, route: "overheid" },
+  },
+  {
+    name: "Gemeente parkeerbelasting naheffing",
+    text: `Gemeente Amsterdam
+Belastingen
+Datum: 4 november 2026
+Naheffingsaanslag parkeerbelasting
+Aanslagnummer: 1234 5678 9012
+Kenteken: AB-123-C
+Op 2 november 2026 om 14:32 uur stond uw auto geparkeerd zonder geldig parkeerrecht op de Keizersgracht.
+Te betalen: € 72,40 (parkeerbelasting € 6,40 en kosten € 66,00)
+Betaal uiterlijk 4 december 2026 op NL04 BNGH 0285 0011 23 o.v.v. het aanslagnummer.
+Bent u het niet eens? U kunt binnen 6 weken na de dagtekening bezwaar maken.
+Gemeente Amsterdam`,
+    expect: { sender: "gemeente", senderName: /^Gemeente Amsterdam$/, pay: true, amount: "72,40", iban: "NL04 BNGH 0285 0011 23", deadline: "2026-12-04", objection: true, route: "overheid" },
+  },
+  {
+    name: "Woningcorporatie huurachterstand",
+    text: `Woonstichting De Linden
+Postbus 300, 7600 AH Almelo
+Datum: 5 november 2026
+Betreft: huurachterstand
+Geachte heer De Boer,
+Uit onze administratie blijkt dat u de huur van september en oktober nog niet heeft betaald.
+Uw achterstand is € 1.486,00.
+Wij verzoeken u dit bedrag binnen 14 dagen te betalen op NL30 RABO 0301 2345 67 o.v.v. huurcontractnummer 45-2231.
+Kunt u niet in één keer betalen? Neem dan direct contact met ons op voor een betalingsregeling.
+Betaalt u niet, dan dragen wij de vordering over aan de deurwaarder en kunnen wij ontbinding van de huurovereenkomst vorderen.
+Met vriendelijke groet,
+Woonstichting De Linden`,
+    expect: { sender: "woning", type: "aanmaning", pay: true, amount: "1.486,00", iban: "NL30 RABO 0301 2345 67", urgency: "rood", deadline: "2026-11-19", estimate: true, route: "huur" },
+  },
+  {
+    name: "Deurwaarder loonbeslag",
+    text: `Gerechtsdeurwaarders Van Dam & Partners
+Postbus 777, 3000 AT Rotterdam
+Datum: 3 november 2026
+Dossiernummer: VD-2026-77812
+Mededeling beslag op loon
+Geachte mevrouw Yilmaz,
+Op 1 november 2026 hebben wij beslag gelegd op uw loon bij uw werkgever, namens Zorgverzekeraar Zuidhaven.
+Uw werkgever houdt maandelijks een deel van uw loon in. U houdt de beslagvrije voet over.
+Uw beslagvrije voet is berekend op € 1.402,00 per maand.
+Klopt de berekening niet? Neem binnen 4 weken contact met ons op.
+Totaal openstaand: € 2.318,77
+Met vriendelijke groet,
+Van Dam & Partners Gerechtsdeurwaarders`,
+    expect: { sender: "deurwaarder", type: "beslag", senderName: /Van Dam & Partners \(namens Zorgverzekeraar Zuidhaven\)$/, urgency: "rood", deadline: "2026-12-01", estimate: true },
+  },
+  {
+    name: "Zorgverzekeraar eigen risico",
+    text: `Zilveren Kruis
+Postbus 444, 2700 AK Zoetermeer
+Datum: 1 november 2026
+Nota eigen risico
+Geachte heer Pinto,
+U heeft zorg gehad die onder het eigen risico valt. Uw eigen risico is nog niet helemaal verbruikt.
+Te betalen: € 210,00
+Wilt u dit bedrag binnen 30 dagen betalen op NL51 INGB 0000 1234 56 o.v.v. 3000 1234 5678.
+U kunt ook kiezen om in termijnen te betalen via Mijn Zilveren Kruis.
+Met vriendelijke groet,
+Zilveren Kruis`,
+    expect: { sender: "zorgverzekeraar", pay: true, amount: "210,00", iban: "NL51 INGB 0000 1234 56", deadline: "2026-12-01", estimate: true, route: "zorgverzekeraar" },
+  },
+  {
+    name: "Energie aanmaning met afsluiting",
+    text: `Vattenfall
+Postbus 41920, 1009 DC Amsterdam
+Datum: 6 november 2026
+Aanmaning
+Klantnummer: 1001 2233 44
+Geachte heer Novak,
+Wij hebben uw termijnbedrag van oktober (€ 145,00) nog niet ontvangen.
+Betaal dit bedrag binnen 14 dagen na dagtekening van deze brief.
+Betaalt u niet op tijd, dan kunnen wij uw levering van stroom en gas afsluiten. Wij melden u dan eerst aan bij de gemeente voor schuldhulp.
+IBAN: NL83 ABNA 0412 3456 78, o.v.v. uw klantnummer.
+Met vriendelijke groet,
+Vattenfall`,
+    expect: { sender: "energie", type: "aanmaning", pay: true, amount: "145,00", iban: "NL83 ABNA 0412 3456 78", urgency: "rood", deadline: "2026-11-20", estimate: true },
+  },
+  {
+    name: "Belastingdienst betalingsherinnering",
+    text: `Belastingdienst
+Datum: 7 november 2026
+Herinnering
+Aanslagnummer: 1234.56.789.H.66
+Geachte mevrouw Jansen,
+U heeft de aanslag inkomstenbelasting 2025 nog niet (helemaal) betaald.
+Nog te betalen: € 534,00
+Betaal dit bedrag binnen 14 dagen op NL36 INGB 0007 6543 21 met betalingskenmerk 5123 4567 8901 2345.
+Als u niet op tijd betaalt, krijgt u een aanmaning en moet u meer betalen.
+Met vriendelijke groet,
+Belastingdienst`,
+    expect: { sender: "belastingdienst", pay: true, amount: "534,00", iban: "NL36 INGB 0007 6543 21", reference: "5123 4567 8901 2345", deadline: "2026-11-21", estimate: true, route: "belasting" },
+  },
+  {
+    name: "UWV WW-uitkering stopt",
+    text: `UWV
+Postbus 58285, 1040 HG Amsterdam
+Datum: 6 november 2026
+Uw WW-uitkering stopt
+Geachte heer Visser,
+Uw WW-uitkering stopt op 1 december 2026, omdat u weer werk heeft gevonden.
+U hoeft niets te doen.
+Bent u het niet eens met dit besluit? Maak dan binnen 6 weken bezwaar.
+Met vriendelijke groet,
+UWV`,
+    expect: { sender: "uwv", pay: false, urgency: "groen", objection: true, route: "overheid" },
+  },
+);

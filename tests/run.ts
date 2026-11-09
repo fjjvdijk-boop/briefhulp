@@ -39,6 +39,7 @@ import fa from "../lib/legal/tr/fa";
 import so from "../lib/legal/tr/so";
 import pt from "../lib/legal/tr/pt";
 const LEGAL_TR = { ar, tr: trL, pl, uk, ru, ro, es, fr, fa, so, pt };
+import { removeShadows } from "../lib/client/ocr";
 import { chunkText, letterToSpeech, pickVoice, prepareForSpeech } from "../lib/client/speech";
 import { CASES, TODAY } from "./letters";
 import { routeKind, relevantTopics, disagreeRoute } from "../lib/legal/route";
@@ -184,6 +185,31 @@ for (const code of BUILT_IN_ORDER) {
       failed++;
       fails.push(`  ✗ ${code}: nog Engels in ${same.join(", ") || "legal/reply"}`);
     }
+  }
+}
+
+// ---------- Schaduw wegwerken (zoals een scanner-app) ----------
+{
+  const W = 400, H = 560;
+  const g = new Uint8ClampedArray(W * H);
+  const isText = (x: number, y: number) => y % 28 < 6 && x > 40 && x < 360 && (x >> 3) % 5 !== 0; // regels "tekst"
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const light = 0.35 + 0.65 * Math.min(1, (x / W) * 0.9 + (y / H) * 0.6); // zware schaduw linksboven
+      g[y * W + x] = (isText(x, y) ? 40 : 235) * light;
+    }
+  removeShadows(g, W, H);
+  let paperMin = 255, textMax = 0;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const v = g[y * W + x];
+      if (isText(x, y)) textMax = Math.max(textMax, v);
+      else if (y % 28 > 9 && y % 28 < 24) paperMin = Math.min(paperMin, v); // papier, niet vlak naast tekst
+    }
+  if (paperMin > 200 && textMax < 110) passed++;
+  else {
+    failed++;
+    fails.push(`  ✗ schaduw wegwerken: papier minimaal ${paperMin} (moet > 200), tekst maximaal ${textMax} (moet < 110)`);
   }
 }
 

@@ -105,7 +105,7 @@ function findDeadline(text: string, dates: DateHit[], letterDate: string | null,
     if (/bezwaar|beroep/i.test(ctx)) continue;
     const n = /^\d+$/.test(m[1]) ? +m[1] : NUMBER_WORDS[m[1].toLowerCase()];
     if (!n) continue;
-    let days = /week/i.test(m[3]) ? n * 7 : n;
+    let days = /^we/i.test(m[3]) ? n * 7 : n; // "week" én "weken" (let op: "weken" bevat "week" niet)
     if (m[2]) days = Math.ceil(days * 1.4); // werkdagen
     return { date: addDays(from, days), is_estimate: true };
   }
@@ -333,7 +333,8 @@ function cleanName(s: string) {
 // "Namens onze opdrachtgever X" → "Incassobureau Y (namens X)"
 function withPrincipal(s: { name: string; type: SenderType }, text: string) {
   if (s.type !== "incassobureau" && s.type !== "deurwaarder") return s;
-  const m = text.match(/(?:namens|in opdracht van|opdrachtgever)\s+(?:onze\s+|uw\s+)?(?:opdrachtgever\s+|cliënt(?:e)?\s+)?:?\s*([A-Z][\w&.'-]*(?:\s+[A-Z][\w&.'-]*){0,4})/);
+  // Alleen op dezelfde regel, en stoppen bij het einde van de zin ("Zuidhaven. Uw" → "Zuidhaven")
+  const m = text.match(/(?:namens|in opdracht van|opdrachtgever)[ \t]+(?:onze[ \t]+|uw[ \t]+)?(?:opdrachtgever[ \t]+|cliënt(?:e)?[ \t]+)?:?[ \t]*([A-Z][\w&'-]*(?:\.[A-Z][\w&'-]*)*\.?(?:[ \t&]+[A-Z][\w&'-]*(?:\.[A-Z]\.?)*){0,4})/);
   if (m && !s.name.includes(m[1])) return { ...s, name: `${s.name} (namens ${m[1].replace(/[.,]+$/, "")})` };
   return s;
 }
@@ -363,7 +364,7 @@ const TYPES: { re: RegExp; key: TypeKey }[] = [
   { re: /dwangbevel/i, key: "dwangbevel" },
   { re: /ingebrekestelling|sommatie|laatste aanmaning|laatste herinnering|laatste kans/i, key: "laatste" },
   { re: /\bCJIB\b|Centraal Justitieel Incassobureau/i, key: "cjib" },
-  { re: /aanmaning/i, key: "aanmaning" },
+  { re: /aanmaning|huurachterstand|betalingsachterstand|achterstand van|uw achterstand|nog niet (heeft )?betaald/i, key: "aanmaning" },
   { re: /betalingsherinnering|herinnering/i, key: "herinnering" },
   { re: /terugvordering|terugbetalen|terug te betalen|terugvorderen/i, key: "terugvordering" },
   { re: /zorgtoeslag|huurtoeslag|kinderopvangtoeslag|kindgebonden budget|voorschot .{0,20}toeslag|toeslag.{0,20}voorschot/i, key: "toeslag" },
@@ -384,7 +385,7 @@ const TYPES: { re: RegExp; key: TypeKey }[] = [
 const RED_WORDS =
   /dagvaarding|beslag|deurwaarder|ingebrekestelling|sommatie|laatste aanmaning|laatste herinnering|afsluit|afgesloten|ontruiming|huisuitzetting|stopzetten|stop(t|pen) met|gijzeling|dwangbevel|verhoging|verhoogd|incassokosten/i;
 const REFUND = /(u krijgt|terugbetal(ing|en wij)|wij betalen (u|het bedrag)|wordt (aan u )?(uit|over)betaald|teruggaaf|terug te ontvangen|ontvangt u|storten wij|wordt (op uw rekening )?overgemaakt)/i;
-const AUTO_DEBIT = /automatische incasso|automatisch afgeschreven|wordt (automatisch )?afgeschreven|incasseren wij|machtiging/i;
+const AUTO_DEBIT = /automatische incasso|automatisch afgeschreven|wordt (automatisch )?afgeschreven|incasseren wij|machtiging|houden (wij )?(dit|het|een) (bedrag|deel)[^.]{0,30} in\b|ingehouden op uw (loon|uitkering)|inhouden op uw (loon|uitkering)/i;
 const NOTHING_TO_DO = /u hoeft (hier)?(voor )?niets te doen|geen actie (nodig|vereist)|ter informatie/i;
 const ACTION_SENTENCE =
   /(u moet|wij vragen u|wilt u|graag ontvangen wij|stuur|vul .* in|lever|reageer|neem (dan )?contact|maak een afspraak|geef .* door|betaal|maak .* over|meld u|log in)/i;
@@ -442,7 +443,7 @@ export function explainLocally(rawText: string, confidence: number, today: strin
   const total =
     amounts.find((a) => TOTAL_WORDS.test(a.label)) ?? (amounts.length ? amounts.reduce((m, a) => (a.value > m.value ? a : m)) : null);
   const needsPayment =
-    !isRefund && !isAutoDebit && typeKey !== "woz" && !!total && (!!iban || /betaal|over te maken|maak .* over|voldoen/i.test(text));
+    !isRefund && !isAutoDebit && typeKey !== "woz" && !!total && (!!iban || /betaal|\bbetalen\b|over te maken|maak .* over|voldoen/i.test(text));
 
   const toLine = text.match(/t\.?\s?n\.?\s?v\.?\s*:?\s*([^\n,]{3,50})/i)?.[1]?.trim() ?? null;
 

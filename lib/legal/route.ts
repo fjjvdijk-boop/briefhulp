@@ -35,6 +35,7 @@ export function routeKind(a: Analysis, typeKey = ""): RouteKind {
   if (s === "cjib" || typeKey === "cjib") return "cjib";
   if (s === "belastingdienst" || s === "toeslagen") return "belasting";
   if (GOV.includes(s)) return "overheid";
+  if (/\bCAK\b/.test(a.sender.name)) return "overheid"; // het CAK is een bestuursorgaan: bezwaar mogelijk
   if (s === "incassobureau" || s === "deurwaarder") return "incasso";
   if (s === "zorgverzekeraar") return "zorgverzekeraar";
   if (s === "verzekeraar" || s === "bank") return "verzekeraar";

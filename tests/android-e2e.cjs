@@ -119,6 +119,29 @@ const check = (name, cond, extra = "") => {
   check("Arabisch: van rechts naar links", (await page.evaluate(() => document.documentElement.dir)) === "rtl");
   await shot("09-arabisch");
 
+  // 8. Camera in de app: toestemming, live beeld, foto maken en gebruiken
+  await page.waitForSelector(".cta-main", { timeout: 15_000 });
+  await page.click(".cta-main");
+  const live = await page
+    .waitForFunction(() => {
+      const v = document.querySelector(".camera-video");
+      return v && v.videoWidth > 0 && !v.paused;
+    }, null, { timeout: 20_000 })
+    .then(() => true)
+    .catch(() => false);
+  await page.waitForTimeout(1200);
+  await shot("10-camera");
+  check("camera geeft live beeld in de app", live);
+  if (live) {
+    await page.click(".shutter");
+    await page.waitForSelector(".camera-review", { timeout: 10_000 });
+    await shot("11-camera-foto");
+    await page.click(".camera-review .btn-primary");
+    const thumb = await page.waitForSelector(".thumb img", { timeout: 15_000 }).then(() => true).catch(() => false);
+    await shot("12-bladzijde");
+    check("foto van de camera komt in de app", thumb);
+  }
+
   check("geen scriptfouten", errors.length === 0, errors.slice(0, 3).join(" | "));
   console.log(`\nAndroid-test: ${ok} goed, ${fails.length} fout`);
   await device.close();

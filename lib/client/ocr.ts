@@ -38,8 +38,85 @@ async function getWorker(): Promise<TesseractWorker> {
 }
 
 /**
+ * Schaduw en ongelijk licht weghalen (zoals een scanner-app): per vakje bepalen hoe licht het papier daar is
+ * (het lichtste deel van het vakje), dat glad maken, en elke pixel daardoor delen. Papier wordt overal wit,
+ * tekst blijft donker. Werkt op de grijze pixels, ter plekke.
+ */
+export function removeShadows(gray: Uint8ClampedArray, W: number, H: number) {
+  const B = Math.max(16, Math.round(Math.max(W, H) / 40)); // vakje groter dan een letter, kleiner dan een schaduw
+  const bw = Math.ceil(W / B);
+  const bh = Math.ceil(H / B);
+  const bg = new Float32Array(bw * bh);
+  const hist = new Uint32Array(256);
+  for (let by = 0; by < bh; by++) {
+    for (let bx = 0; bx < bw; bx++) {
+      hist.fill(0);
+      let n = 0;
+      const y1 = Math.min(H, (by + 1) * B);
+      const x1 = Math.min(W, (bx + 1) * B);
+      for (let y = by * B; y < y1; y += 2) for (let x = bx * B; x < x1; x += 2, n++) hist[gray[y * W + x]]++;
+      // 90e percentiel: de kleur van het papier (niet van de tekst), en ongevoelig voor ruis
+      let acc = 0;
+      let v = 255;
+      for (; v > 0; v--) if ((acc += hist[v]) >= n * 0.1) break;
+      bg[by * bw + bx] = Math.max(v, 1);
+    }
+  }
+  // Grote donkere vlakken (dikke kop, logo, tafel): neem de lichtste buur, daarna glad maken
+  const tmp = new Float32Array(bg);
+  for (let by = 0; by < bh; by++)
+    for (let bx = 0; bx < bw; bx++) {
+      let m = 0;
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const yy = by + dy;
+          const xx = bx + dx;
+          if (yy >= 0 && yy < bh && xx >= 0 && xx < bw) m = Math.max(m, bg[yy * bw + xx]);
+        }
+      tmp[by * bw + bx] = m;
+    }
+  for (let pass = 0; pass < 2; pass++) {
+    const src = pass === 0 ? tmp : bg;
+    const dst = pass === 0 ? bg : tmp;
+    for (let by = 0; by < bh; by++)
+      for (let bx = 0; bx < bw; bx++) {
+        let s2 = 0;
+        let k = 0;
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            const yy = by + dy;
+            const xx = bx + dx;
+            if (yy >= 0 && yy < bh && xx >= 0 && xx < bw) {
+              s2 += src[yy * bw + xx];
+              k++;
+            }
+          }
+        dst[by * bw + bx] = s2 / k;
+      }
+  }
+  const map = tmp; // na twee rondes staat het resultaat in tmp
+  // Elke pixel delen door het (bilineair verfijnde) papierlicht
+  for (let y = 0; y < H; y++) {
+    const fy = Math.min(bh - 1, Math.max(0, (y + 0.5) / B - 0.5));
+    const y0 = Math.floor(fy);
+    const y1 = Math.min(bh - 1, y0 + 1);
+    const ty = fy - y0;
+    for (let x = 0; x < W; x++) {
+      const fx = Math.min(bw - 1, Math.max(0, (x + 0.5) / B - 0.5));
+      const x0 = Math.floor(fx);
+      const x1 = Math.min(bw - 1, x0 + 1);
+      const tx = fx - x0;
+      const b =
+        (map[y0 * bw + x0] * (1 - tx) + map[y0 * bw + x1] * tx) * (1 - ty) + (map[y1 * bw + x0] * (1 - tx) + map[y1 * bw + x1] * tx) * ty;
+      const i = y * W + x;
+      gray[i] = Math.min(255, (gray[i] * 255) / Math.max(b, 24));
+    }
+  }
+}
+
+/**
  * Maakt een foto beter leesbaar voor de tekstherkenning:
- * grijs, contrast oprekken (schaduw en vergeling weg) en kleine foto's vergroten.
+ * grijs, schaduw weg, contrast oprekken en kleine foto's vergroten.
  */
 export async function enhanceForOcr(src: string | HTMLCanvasElement): Promise<HTMLCanvasElement> {
   let source: CanvasImageSource;
@@ -66,20 +143,21 @@ export async function enhanceForOcr(src: string | HTMLCanvasElement): Promise<HT
   ctx.drawImage(source, 0, 0, c.width, c.height);
   const im = ctx.getImageData(0, 0, c.width, c.height);
   const d = im.data;
+  const W = c.width;
+  const H = c.height;
+  const gray = new Uint8ClampedArray(W * H);
+  for (let i = 0, j = 0; i < d.length; i += 4, j++) gray[j] = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) | 0;
+  removeShadows(gray, W, H);
   const hist = new Uint32Array(256);
-  for (let i = 0; i < d.length; i += 4) {
-    const g = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) | 0;
-    d[i] = g;
-    hist[g]++;
-  }
-  const total = d.length / 4;
+  for (let j = 0; j < gray.length; j++) hist[gray[j]]++;
+  const total = gray.length;
   let lo = 0;
   let hi = 255;
   for (let acc = 0; lo < 255 && (acc += hist[lo]) < total * 0.01; lo++);
   for (let acc = 0; hi > 0 && (acc += hist[hi]) < total * 0.02; hi--);
   const range = Math.max(40, hi - lo);
-  for (let i = 0; i < d.length; i += 4) {
-    const v = Math.max(0, Math.min(255, ((d[i] - lo) * 255) / range));
+  for (let i = 0, j = 0; i < d.length; i += 4, j++) {
+    const v = Math.max(0, Math.min(255, ((gray[j] - lo) * 255) / range));
     d[i] = d[i + 1] = d[i + 2] = v;
   }
   ctx.putImageData(im, 0, 0);
