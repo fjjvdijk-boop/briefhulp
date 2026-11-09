@@ -1,7 +1,10 @@
 import type { UploadPage } from "../types";
 import { straightenCanvas } from "./straighten";
 
-const MAX_EDGE = 2000; // genoeg om kleine letters te lezen, klein genoeg om snel te versturen
+const MAX_EDGE = 2000; // voor versturen (AI-uitleg) en de miniatuur: klein genoeg om snel te versturen
+// Voor de tekstherkenning op het toestel houden we meer detail: kleine letters op een foto van een hele
+// A4 worden dan veel beter gelezen (gemeten: zie tests). Blijft op het toestel, wordt nooit verstuurd.
+const OCR_MAX_EDGE = 3000;
 const PDF_MAX_BYTES = 3 * 1024 * 1024;
 
 export interface PhotoQuality {
@@ -15,6 +18,8 @@ export interface PreparedPage extends UploadPage {
   quality?: PhotoQuality;
   straightened?: boolean;
   preview: string; // data-URL voor de miniatuur ("" bij PDF)
+  /** Scherpere versie (blob-URL) alleen voor de tekstherkenning op het toestel. */
+  ocrSrc?: string;
   name: string;
 }
 
@@ -110,7 +115,7 @@ export async function preparePage(file: File): Promise<PreparedPage> {
   }
   const w = "naturalWidth" in img ? img.naturalWidth : img.width;
   const h = "naturalHeight" in img ? img.naturalHeight : img.height;
-  const scale = Math.min(1, MAX_EDGE / Math.max(w, h));
+  const scale = Math.min(1, OCR_MAX_EDGE / Math.max(w, h));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(w * scale);
   canvas.height = Math.round(h * scale);
@@ -121,18 +126,34 @@ export async function preparePage(file: File): Promise<PreparedPage> {
   ctx.drawImage(img as CanvasImageSource, 0, 0, canvas.width, canvas.height);
   if ("close" in img) img.close();
   // Scheve brief rechttrekken (zoals een scanner). Lukt dat niet, dan de foto zoals hij is.
-  let out = canvas;
+  let big = canvas;
   let straightened = false;
   try {
-    const s = straightenCanvas(canvas);
+    const s = straightenCanvas(canvas, OCR_MAX_EDGE);
     if (s) {
-      out = s;
+      big = s;
       straightened = true;
     }
   } catch {
     /* gewoon de originele foto gebruiken */
   }
+  // Kleinere versie om te versturen en te tonen
+  let out = big;
+  const down = Math.min(1, MAX_EDGE / Math.max(big.width, big.height));
+  if (down < 1) {
+    out = document.createElement("canvas");
+    out.width = Math.round(big.width * down);
+    out.height = Math.round(big.height * down);
+    const octx = out.getContext("2d")!;
+    octx.imageSmoothingQuality = "high";
+    octx.drawImage(big, 0, 0, out.width, out.height);
+  }
+  let ocrSrc: string | undefined;
+  if (big !== out) {
+    const blob = await new Promise<Blob | null>((res) => big.toBlob(res, "image/jpeg", 0.92));
+    if (blob) ocrSrc = URL.createObjectURL(blob);
+  }
   const quality = checkQuality(out, straightened ? Math.max(w, h) : w, straightened ? Math.max(w, h) : h);
   const dataUrl = out.toDataURL("image/jpeg", 0.88);
-  return { id: newId(), mediaType: "image/jpeg", data: dataUrl.split(",")[1], preview: dataUrl, name: file.name, quality, straightened };
+  return { id: newId(), mediaType: "image/jpeg", data: dataUrl.split(",")[1], preview: dataUrl, ocrSrc, name: file.name, quality, straightened };
 }

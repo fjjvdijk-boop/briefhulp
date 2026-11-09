@@ -83,6 +83,33 @@ export function findPaperCorners(gray: Uint8Array, w: number, h: number): Point[
     }
     next++;
   }
+  // Papier in de schaduw is donkerder dan de drempel en viel er dus buiten. Laat het lichte vlak
+  // "doorgroeien" naar buurpixels die er geleidelijk in overgaan (een schaduw verloopt zacht);
+  // de rand van het papier is een scherpe overgang en houdt de groei tegen.
+  if (bestLabel) {
+    const floor = Math.max(30, thr * 0.45);
+    const queue: number[] = [];
+    for (let i = 0; i < w * h; i++) if (label[i] === bestLabel) queue.push(i);
+    for (let qi = 0; qi < queue.length; qi++) {
+      const p = queue[qi];
+      const x = p % w;
+      const y = (p / w) | 0;
+      const gp = gray[p];
+      const tryAdd = (n: number) => {
+        if (label[n] === bestLabel) return;
+        const gn = gray[n];
+        if (gn < floor || Math.abs(gn - gp) > 6) return;
+        label[n] = bestLabel;
+        bestSize++;
+        queue.push(n);
+      };
+      if (x > 0) tryAdd(p - 1);
+      if (x < w - 1) tryAdd(p + 1);
+      if (y > 0) tryAdd(p - w);
+      if (y < h - 1) tryAdd(p + w);
+    }
+  }
+
   const area = w * h;
   if (bestSize < area * 0.15) return null; // te klein: geen brief
 
@@ -163,7 +190,7 @@ const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 /**
  * Zet de brief op `canvas` recht. Geeft een nieuw canvas terug, of null als er niets recht te zetten is.
  */
-export function straightenCanvas(canvas: HTMLCanvasElement): HTMLCanvasElement | null {
+export function straightenCanvas(canvas: HTMLCanvasElement, maxOut = 2200): HTMLCanvasElement | null {
   const W = canvas.width;
   const H = canvas.height;
   const scale = Math.min(1, 400 / Math.max(W, H));
@@ -183,7 +210,7 @@ export function straightenCanvas(canvas: HTMLCanvasElement): HTMLCanvasElement |
   const [tl, tr, br, bl] = src;
   let outW = Math.round(Math.max(dist(tl, tr), dist(bl, br)));
   let outH = Math.round(Math.max(dist(tl, bl), dist(tr, br)));
-  const cap = 2200 / Math.max(outW, outH);
+  const cap = maxOut / Math.max(outW, outH);
   if (cap < 1) {
     outW = Math.round(outW * cap);
     outH = Math.round(outH * cap);

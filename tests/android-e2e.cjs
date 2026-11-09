@@ -136,7 +136,7 @@ const check = (name, cond, extra = "") => {
     await page.click(".shutter");
     await page.waitForSelector(".camera-review", { timeout: 10_000 });
     await shot("11-camera-foto");
-    await page.click(".camera-review .btn-primary");
+    await page.click(".camera-review-btns .btn-primary");
     const thumb = await page.waitForSelector(".thumb img", { timeout: 15_000 }).then(() => true).catch(() => false);
     await shot("12-bladzijde");
     check("foto van de camera komt in de app", thumb);

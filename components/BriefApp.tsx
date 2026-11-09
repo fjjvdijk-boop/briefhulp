@@ -252,6 +252,7 @@ export default function BriefApp() {
         if (!ctrl.signal.aborted) setProgress(p);
       });
       if (ctrl.signal.aborted) return;
+      document.documentElement.dataset.ocrConfidence = String(Math.round(confidence)); // voor tests en foutzoeken
       const r = explainLocally(text, confidence, localToday(), t, loc);
       setAnalysis(r.analysis);
       setTypeKey(r.typeKey);

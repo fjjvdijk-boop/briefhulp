@@ -115,6 +115,29 @@ export function removeShadows(gray: Uint8ClampedArray, W: number, H: number) {
 }
 
 /**
+ * Donkere foto's hebben veel ruis. Als we het papier daarna wit maken, wordt die ruis ook sterker en leest
+ * de tekstherkenning slechter. Daarom bij een donkere foto eerst een zachte 3×3-middeling.
+ */
+export function denoiseIfDark(gray: Uint8ClampedArray, W: number, H: number) {
+  const hist = new Uint32Array(256);
+  for (let i = 0; i < gray.length; i += 7) hist[gray[i]]++;
+  let n = 0;
+  for (const c of hist) n += c;
+  let acc = 0;
+  let paper = 255;
+  for (; paper > 0; paper--) if ((acc += hist[paper]) >= n * 0.3) break; // licht van het papier
+  if (paper >= 150) return;
+  const src = gray.slice();
+  for (let y = 1; y < H - 1; y++)
+    for (let x = 1; x < W - 1; x++) {
+      const i = y * W + x;
+      gray[i] =
+        (src[i - W - 1] + 2 * src[i - W] + src[i - W + 1] + 2 * src[i - 1] + 4 * src[i] + 2 * src[i + 1] + src[i + W - 1] + 2 * src[i + W] + src[i + W + 1]) >>
+        4;
+    }
+}
+
+/**
  * Maakt een foto beter leesbaar voor de tekstherkenning:
  * grijs, schaduw weg, contrast oprekken en kleine foto's vergroten.
  */
@@ -147,6 +170,7 @@ export async function enhanceForOcr(src: string | HTMLCanvasElement): Promise<HT
   const H = c.height;
   const gray = new Uint8ClampedArray(W * H);
   for (let i = 0, j = 0; i < d.length; i += 4, j++) gray[j] = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) | 0;
+  denoiseIfDark(gray, W, H);
   removeShadows(gray, W, H);
   const hist = new Uint32Array(256);
   for (let j = 0; j < gray.length; j++) hist[gray[j]]++;
@@ -261,7 +285,7 @@ export async function readLetter(pages: PreparedPage[], onProgress: (p: ReadProg
         progress: Math.max(0, Math.min(1, p)),
       });
     if (page.preview) qr.push(...(await findQrCodes(page.preview)));
-    const r = page.mediaType === "application/pdf" ? await readPdf(page, report) : await ocrImage(page.preview, report);
+    const r = page.mediaType === "application/pdf" ? await readPdf(page, report) : await ocrImage(page.ocrSrc ?? page.preview, report);
     texts.push(r.text);
     confidence = Math.min(confidence, r.confidence);
   }
