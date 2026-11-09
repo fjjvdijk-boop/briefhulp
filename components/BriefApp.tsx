@@ -61,7 +61,16 @@ export default function BriefApp() {
   const [screen, setScreen] = useState<Screen>("home");
   const screenRef = useRef<Screen>("home");
   screenRef.current = screen;
-  const [pages, setPages] = useState<PreparedPage[]>([]);
+  const [pages, setPagesRaw] = useState<PreparedPage[]>([]);
+  // Scherpere versies voor de tekstherkenning (blob-URL's) opruimen zodra een bladzijde weg is
+  const setPages = useCallback((next: PreparedPage[] | ((p: PreparedPage[]) => PreparedPage[])) => {
+    setPagesRaw((prev) => {
+      const value = typeof next === "function" ? next(prev) : next;
+      const keep = new Set(value.map((x) => x.ocrSrc));
+      for (const x of prev) if (x.ocrSrc && !keep.has(x.ocrSrc)) URL.revokeObjectURL(x.ocrSrc);
+      return value;
+    });
+  }, []);
   const [busyFile, setBusyFile] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
