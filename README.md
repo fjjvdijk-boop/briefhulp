@@ -26,8 +26,9 @@ Maak een foto van een brief van de Belastingdienst, de gemeente, een verzekeraar
 - **Installeerbaar en offline** (service worker), **hele brief voorlezen**, **"Klopte deze uitleg?"** (anoniem: alleen ja/nee + soort brief).
 - **Kwaliteit (nieuw):** Lighthouse 94 / 100 / 100 / 100 (snelheid, toegankelijkheid, best practices, SEO). Talen worden pas geladen als ze gekozen zijn (app 251 → 183 kB). Werkt op een scherm van 320 px breed in alle talen, ook met grote letters. Eigen lettertype met nette terugval voor Cyrillisch, Arabisch en Perzisch.
 - **Langzamer voorlezen (nieuw):** knop 🐢 naast "Lees voor", wordt onthouden.
+- **Beter lezen van echte foto's (nieuw):** schaduw wordt weggewerkt zoals in een scanner-app, papier in de schaduw wordt niet meer afgesneden bij het rechtzetten, de tekstherkenning krijgt een scherpere versie (tot 3000 px), en donkere foto's worden eerst ontruisd. Gemeten met 120 nagebootste telefoonfoto's (schaduw, donker, scheef op tafel, wazig, klein, alles tegelijk): **van 66% naar 98% helemaal goed**. De fotoproef (`tests/photo/`) draait ook automatisch op GitHub.
 - **Browsercontrole:** `npm run e2e` (na `npm run build && npm start`) controleert 214 schermen: alle 13 talen × licht/donker × alle tabbladen en pagina's met axe, geen horizontaal scrollen op 320 px, en vloeiend voorlezen. Draait ook automatisch op GitHub.
-- **Testset:** `npm test` controleert 14 verzonnen brieven, alle talen (ook of er niets meer in het Engels staat), het voorlezen en de betaalhulp (270/270 goed).
+- **Testset:** `npm test` controleert 14 verzonnen brieven, alle talen (ook of er niets meer in het Engels staat), het voorlezen en de betaalhulp (408/408 goed, met 24 brieven).
 
 > Let op: de vertalingen zijn door AI gemaakt. Laat ze vóór een officiële lancering nakijken door moedertaalsprekers.
 

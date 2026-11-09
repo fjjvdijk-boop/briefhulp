@@ -28,3 +28,9 @@ jobs:
           npm start &
           for i in $(seq 60); do curl -sf http://localhost:3000 >/dev/null && break; sleep 1; done
           npm run e2e
+      - name: Fotoproef (schaduw, donker, scheef, wazig, klein, alles tegelijk)
+        run: |
+          pip install --quiet pillow numpy
+          curl -sf http://localhost:3000 >/dev/null || (npm start & for i in $(seq 60); do curl -sf http://localhost:3000 >/dev/null && break; sleep 1; done)
+          python3 tests/photo/degrade.py testbrieven /tmp/fotos 01,03,05,08,12
+          node tests/photo/robust.cjs /tmp/fotos
