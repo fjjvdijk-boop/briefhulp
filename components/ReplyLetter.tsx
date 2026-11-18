@@ -2,6 +2,7 @@
 
 import { isNative, shareText } from "../lib/client/platform";
 import { useEffect, useMemo, useState } from "react";
+import { SpeakCard } from "./Speech";
 import { Icon } from "./Icon";
 import { useI18n } from "../lib/i18n/context";
 import { buildReply, loadMe, replySubject, saveMe, type ReplyInput, type ReplyKind } from "../lib/client/reply";
@@ -16,7 +17,8 @@ export function ReplyCard({ analysis, kinds, title, intro }: { analysis: Analysi
     <section className="card card-reply">
       <h2 className="card-title">
         <Icon name="send" /> {title ?? t.reply.title}
-      </h2>
+<SpeakCard />
+          </h2>
       <p className="hint">{intro ?? t.reply.intro}</p>
       <div className="reply-kinds">
         {kinds.map((k) => (
@@ -130,9 +132,11 @@ function ReplySheet({ kind, analysis, onClose }: { kind: ReplyKind; analysis: An
 
         <h3 className="reply-preview-title">{r.preview}</h3>
         <p className="hint">{r.dutchNote}</p>
-        <pre className="reply-letter" lang="nl" dir="ltr">
-          {letter}
-        </pre>
+        {/* Voorlezen: alleen de brief zelf, in het Nederlands */}
+        <div className="speak-root reply-letter-wrap" lang="nl" dir="ltr">
+          <SpeakCard label={r.preview} />
+          <pre className="reply-letter">{letter}</pre>
+        </div>
         <p className="notice">
           <Icon name="info" size={20} /> <span>{r.check}</span>
         </p>

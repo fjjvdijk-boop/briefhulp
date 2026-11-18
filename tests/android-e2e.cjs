@@ -63,11 +63,37 @@ const check = (name, cond, extra = "") => {
   await page.click(".btn-listen");
   await page.waitForTimeout(2500);
   const listening = await page.getAttribute(".btn-listen", "aria-pressed");
-  const noVoice = await page.$(".no-voice");
+  const noVoice = await page.$(".speech-bar-msg");
   check("voorlezen start (of meldt netjes dat er geen stem is)", listening === "true" || !!noVoice, `aria-pressed=${listening}`);
   console.log("   voorlezen:", listening === "true" ? "stem van de telefoon spreekt" : noVoice ? "geen stem op dit toestel (melding getoond)" : "?");
   await shot("05-voorlezen");
-  if (listening === "true") await page.click(".btn-listen");
+  if (listening === "true") {
+    // Spelerbalk: voortgang, pauze, verder (met de echte stem van de telefoon)
+    check("spelerbalk zichtbaar tijdens voorlezen", !!(await page.$(".speech-bar")));
+    const prog1 = await page.textContent(".speech-progress").catch(() => "");
+    await page.waitForTimeout(3000);
+    const prog2 = await page.textContent(".speech-progress").catch(() => "");
+    check("stem gaat zin voor zin verder", prog1 !== prog2 || /van/.test(prog2 || ""), `${prog1} → ${prog2}`);
+    await page.click(".speech-main");
+    await page.waitForTimeout(800);
+    check("pauze in de app", (await page.getAttribute(".speech-main", "aria-label")) === "Verder");
+    const pausedAt = await page.textContent(".speech-progress");
+    await page.waitForTimeout(2000);
+    check("pauze: blijft staan", (await page.textContent(".speech-progress")) === pausedAt);
+    await page.click(".speech-main");
+    await page.waitForTimeout(1500);
+    check("verder in de app", (await page.getAttribute(".speech-main", "aria-label")) === "Pauze");
+    await shot("05a-spelerbalk");
+    await page.click(".btn-listen");
+    await page.waitForTimeout(500);
+    check("stoppen: balk weg", !(await page.$(".speech-bar")));
+    // Voorleesknop op een kaart
+    await page.click(".card-actions .speak-card");
+    await page.waitForTimeout(1500);
+    check("kaart voorlezen in de app", !!(await page.$(".speech-bar")));
+    await page.click('.speech-btn[aria-label="Stop met voorlezen"]').catch(() => {});
+    await page.waitForTimeout(500);
+  }
 
   // 3b. Herinnering als melding (toestemming vooraf gegeven)
   await device.shell(`pm grant ${PKG} android.permission.POST_NOTIFICATIONS`).catch(() => {});

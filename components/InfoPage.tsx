@@ -9,6 +9,7 @@ import { dictFromTranslation, loadCachedTranslation } from "../lib/i18n/autotran
 import { I18nProvider, useExtraTexts, useI18n } from "../lib/i18n/context";
 import { useLegalText } from "../lib/legal/i18n";
 import { AllTopics } from "./LegalParts";
+import { SpeechBar } from "./Speech";
 
 const VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "1.0";
 
@@ -136,6 +137,7 @@ export function RightsPage() {
         <Link href="/" className="btn btn-primary">
           Briefhulp
         </Link>
+        <SpeechBar />
       </I18nProvider>
     </Shell>
   );

@@ -37,6 +37,9 @@ const paths: Record<string, React.ReactNode> = {
     </>
   ),
   stop: <rect x="6" y="6" width="12" height="12" rx="2" />,
+  play: <path d="M8 5.5v13l10.5-6.5z" fill="currentColor" />,
+  pause: <path d="M8.5 5.5v13M15.5 5.5v13" strokeWidth={3} />,
+  prev: <path d="M6.5 5.5v13M18 5.5 9.5 12l8.5 6.5z" fill="currentColor" />,
   check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
   phone: (
     <path d="M6.6 3.5h2.6l1.4 4.2-2 1.3a11 11 0 0 0 6.4 6.4l1.3-2 4.2 1.4v2.6a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z" />

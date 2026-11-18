@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { SpeakCard, SpeechBar } from "./Speech";
 import { Icon } from "./Icon";
 import { Result } from "./Result";
 import { LanguageScreen } from "./LanguageScreen";
@@ -523,7 +524,8 @@ export default function BriefApp() {
                 <div className="card card-translate" lang="en">
                   <h2 className="card-title">
                     <Icon name="globe" /> {prefs.langName ?? lang}
-                  </h2>
+<SpeakCard />
+          </h2>
                   <p>
                     Your phone cannot translate Briefhulp into this language by itself, so the app is shown in English.
                     {aiAvailable ? " The full explanation (AI) will be written in your language." : ""}
@@ -541,7 +543,8 @@ export default function BriefApp() {
                 <div className="card card-install">
                   <h2 className="card-title">
                     <Icon name="plus" /> {t.home.installTitle}
-                  </h2>
+<SpeakCard />
+          </h2>
                   <p>{isIos && !installEvent ? t.home.installIos : t.home.installText}</p>
                   <div className="btn-row">
                     {installEvent && (
@@ -746,6 +749,7 @@ export default function BriefApp() {
             </p>
           </footer>
         )}
+        <SpeechBar />
       </div>
     </I18nProvider>
   );
@@ -766,7 +770,9 @@ function Welcome({ onStart }: { onStart: () => void }) {
     <section className="screen welcome">
       <div className="welcome-hero">
         <img src="/icon.svg" alt="" width={88} height={88} />
-        <h1 className="title">{t.onboarding.welcome}</h1>
+        <h1 className="title title-speak">
+          {t.onboarding.welcome} <SpeakCard />
+        </h1>
         <p className="lead">{t.onboarding.intro}</p>
       </div>
       <ol className="how">
@@ -808,7 +814,8 @@ function MyDeadlines({ items, onDone }: { items: SavedDeadline[]; onDone: (id: s
     <section className="card card-deadlines">
       <h2 className="card-title">
         <Icon name="calendar" /> {t.home.myDeadlines}
-      </h2>
+<SpeakCard />
+          </h2>
       <ul className="deadline-list">
         {items.map((d) => {
           const days = daysUntil(d.date);

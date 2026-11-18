@@ -3062,3 +3062,165 @@ h1, h2, h3, h4, .card-title, .topic summary, .btn span, .help-list strong, .fact
   hyphens: manual;
   overflow-wrap: break-word;
 }
+
+/* ---------- Voorlezen: knop per kaart ---------- */
+.speak-card {
+  margin-inline-start: auto;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  color: var(--primary);
+  cursor: pointer;
+}
+.speak-card svg {
+  color: inherit;
+}
+.speak-card:hover {
+  border-color: var(--primary);
+}
+.speak-card.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-ink);
+}
+.card-title .speak-card,
+summary .speak-card {
+  margin-inline-start: auto;
+}
+summary.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.title-speak {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.topic-speak {
+  display: flex;
+  justify-content: flex-end;
+  margin: -4px 0 4px;
+}
+.reply-letter-wrap {
+  position: relative;
+}
+.reply-letter-wrap > .speak-card {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+}
+
+/* ---------- Voorlezen: spelerbalk onderin ---------- */
+.speech-bar {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: max(10px, env(safe-area-inset-bottom));
+  width: min(640px, calc(100% - 20px));
+  box-sizing: border-box;
+  padding: 12px 14px 10px;
+  border-radius: 22px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 40px rgba(10, 20, 50, 0.28);
+}
+.speech-now {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.35;
+  max-height: 4.1em;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.speech-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.speech-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.speech-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.speech-btn.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.speech-main {
+  flex: 1 1 auto;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-ink);
+}
+.speech-progress {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  text-align: center;
+}
+.speech-bar-msg {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.speech-bar-msg p {
+  margin: 0;
+  flex: 1;
+}
+/* Ruimte onderin, zodat de balk niets bedekt */
+html.speech-bar-open body {
+  padding-bottom: 190px;
+}
+/* Smal scherm: "Langzamer" alleen als schildpadje (de naam blijft voor schermlezers in aria-label) */
+@media (max-width: 440px) {
+  .speech-btn-label {
+    display: none;
+  }
+}
+.speech-btn > span[aria-hidden] {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.speech-main span {
+  line-height: 1.1;
+  text-align: center;
+}
+.speech-main {
+  min-width: 0;
+  padding: 4px 10px;
+}
+/* Van rechts naar links: "vorige zin" wijst naar rechts */
+[dir="rtl"] .icon-prev {
+  transform: scaleX(-1);
+}
+@media print {
+  .speech-bar,
+  .speak-card {
+    display: none !important;
+  }
+}

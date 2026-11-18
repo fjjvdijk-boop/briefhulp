@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SpeakCard } from "./Speech";
 import { Icon } from "./Icon";
 import { ReplyCard } from "./ReplyLetter";
 import { DisagreePlan, PayHelp, RightsList } from "./LegalParts";
@@ -85,6 +86,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
         <div className="card card-warn" role="alert">
           <h2 className="card-title">
             <Icon name="camera" /> {a.is_letter ? t.result.unreadable : t.result.notLetter}
+<SpeakCard />
           </h2>
           <p>{a.photo_tip || t.result.unreadableTip}</p>
           <button className="btn btn-primary" onClick={onRetakePhoto}>
@@ -165,6 +167,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
         <div className="card card-scam" role="alert">
           <h2 className="card-title">
             <Icon name="alert" /> {t.result.scamTitle}
+<SpeakCard />
           </h2>
           <ul className="bullets" dir={contentRtl ? "rtl" : undefined}>
             {a.scam_check.signals.map((s) => (
@@ -206,14 +209,14 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
 
       {tab === "overview" && (
       <section className="card" dir={contentRtl ? "rtl" : undefined}>
-        <h2 className="card-title">{t.result.inShort}</h2>
+        <h2 className="card-title">{t.result.inShort} <SpeakCard /></h2>
         <p className="summary">{a.summary}</p>
       </section>
       )}
 
       {tab === "overview" && (
       <section className="card card-actions">
-        <h2 className="card-title">{t.result.whatToDo}</h2>
+        <h2 className="card-title">{t.result.whatToDo} <SpeakCard /></h2>
         <ol className="checklist" dir={contentRtl ? "rtl" : undefined}>
           {a.actions.map((s, i) => (
             <li key={i} className={done[i] ? "is-done" : ""}>
@@ -241,6 +244,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
         <section className={`card card-deadline ${days < 0 ? "overdue" : days <= 14 ? "soon" : ""}`}>
           <h2 className="card-title">
             <Icon name="calendar" /> {t.result.deadline}
+<SpeakCard />
           </h2>
           <p className="deadline-date">{formatDateLong(a.deadline.date, locale)}</p>
           <p className="deadline-days">
@@ -309,6 +313,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
         <section className="card card-pay">
           <h2 className="card-title">
             <Icon name="euro" /> {t.result.pay}
+<SpeakCard />
           </h2>
           {a.payment.amount && <p className="pay-amount">{a.payment.amount}</p>}
           <dl className="pay-grid">
@@ -322,7 +327,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
 
       {tab === "pay" && a.amounts.length > 0 && (
         <section className="card">
-          <h2 className="card-title">{t.result.amounts}</h2>
+          <h2 className="card-title">{t.result.amounts} <SpeakCard /></h2>
           {a.checks?.sumOk && (
             <p className="verified">
               <Icon name="check" size={18} /> {t.result.sumChecked}
@@ -341,14 +346,14 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
 
       {tab === "overview" && a.if_you_do_nothing && (
         <section className="card" dir={contentRtl ? "rtl" : undefined}>
-          <h2 className="card-title">{t.result.ifNothing}</h2>
+          <h2 className="card-title">{t.result.ifNothing} <SpeakCard /></h2>
           <p>{a.if_you_do_nothing}</p>
         </section>
       )}
 
       {tab === "disagree" && a.objection.possible && (
         <section className="card" dir={contentRtl ? "rtl" : undefined}>
-          <h2 className="card-title">{t.result.objection}</h2>
+          <h2 className="card-title">{t.result.objection} <SpeakCard /></h2>
           {a.objection.how && <p>{a.objection.how}</p>}
           {a.objection.deadline && (
             <p>
@@ -360,7 +365,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
 
       {tab === "help" && (telHref || site || a.contact.email) && (
         <section className="card">
-          <h2 className="card-title">{t.result.contact(a.sender.name)}</h2>
+          <h2 className="card-title">{t.result.contact(a.sender.name)} <SpeakCard /></h2>
           <div className="btn-col">
             {telHref && (
               <a className="btn btn-secondary" href={telHref}>
@@ -397,7 +402,12 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
 
       {tab === "overview" && a.difficult_words.length > 0 && (
         <details className="card fold">
-          <summary className="card-title">{t.result.words}</summary>
+          <summary className="card-title">
+            {t.result.words}
+          </summary>
+          <div className="topic-speak">
+            <SpeakCard label={t.result.words} />
+          </div>
           <dl className="words" dir={contentRtl ? "rtl" : undefined}>
             {a.difficult_words.map((w) => (
               <div key={w.word}>
@@ -421,7 +431,7 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
 
       {tab === "overview" && onUpgrade && (
         <section className="card card-upgrade">
-          <h2 className="card-title">{t.result.upgradeTitle}</h2>
+          <h2 className="card-title">{t.result.upgradeTitle} <SpeakCard /></h2>
           <p>{t.result.upgradeText}</p>
           <p className="hint">{t.result.upgradePrivacy}</p>
           <button className="btn btn-primary" onClick={onUpgrade}>
@@ -447,7 +457,8 @@ export function Result({ analysis: a, mode, typeKey, letterText, qrCodes = [], o
       <section className="card card-help">
         <h2 className="card-title">
           <Icon name="help" /> {t.result.help}
-        </h2>
+<SpeakCard />
+          </h2>
         <ul className="help-list" dir={contentRtl ? "rtl" : undefined}>
           {a.help.map((h) => (
             <li key={h.name}>
@@ -564,22 +575,12 @@ function CopyRow({ label, value, important, iban, verified }: { label: string; v
   );
 }
 
-const SLOW_KEY = "briefhulp:speech-slow";
-
 function ReadAloud({ label, stopLabel, lang, parts, small, letter }: { label: string; stopLabel: string; lang: string; parts: string[]; small?: boolean; letter?: boolean }) {
-  const { t } = useI18n();
   const [active, setActive] = useState(false);
   const [supported, setSupported] = useState(false);
-  const [noVoice, setNoVoice] = useState(false);
-  const [slow, setSlow] = useState(false);
   const idRef = useRef<number | null>(null);
   useEffect(() => {
     setSupported(speechSupported());
-    try {
-      setSlow(localStorage.getItem(SLOW_KEY) === "1");
-    } catch {
-      /* geen opslag */
-    }
     loadVoices(); // alvast laden, dan start het voorlezen direct
     const off = onSpeechChange((cur) => setActive(cur !== null && cur === idRef.current));
     return () => {
@@ -587,51 +588,20 @@ function ReadAloud({ label, stopLabel, lang, parts, small, letter }: { label: st
       if (isSpeaking(idRef.current)) stopSpeech();
     };
   }, []);
-  useEffect(() => setNoVoice(false), [lang]);
   if (!supported) return null;
 
   const toggle = () => {
     if (active) return stopSpeech();
-    setNoVoice(false);
     const list = letter ? parts.flatMap((p) => letterToSpeech(p)) : parts;
-    idRef.current = speak(list, { lang, rate: slow ? 0.78 : 1, onNoVoice: () => setNoVoice(true) });
+    idRef.current = speak(list, { lang, label });
     setActive(isSpeaking(idRef.current));
-  };
-  const toggleSlow = () => {
-    const next = !slow;
-    setSlow(next);
-    try {
-      localStorage.setItem(SLOW_KEY, next ? "1" : "0");
-    } catch {
-      /* geen opslag */
-    }
-    if (active) {
-      // Meteen opnieuw beginnen in het nieuwe tempo
-      stopSpeech();
-      const list = letter ? parts.flatMap((p) => letterToSpeech(p)) : parts;
-      idRef.current = speak(list, { lang, rate: next ? 0.78 : 1, onNoVoice: () => setNoVoice(true) });
-      setActive(isSpeaking(idRef.current));
-    }
   };
 
   return (
-    <>
-      <div className="listen-row">
-        <button className={`btn btn-listen ${active ? "on" : ""} ${small ? "btn-small" : ""}`} onClick={toggle} aria-pressed={active}>
-          <Icon name={active ? "stop" : "speaker"} />
-          <span>{active ? stopLabel : label}</span>
-        </button>
-        <button className={`btn btn-slow ${slow ? "on" : ""}`} onClick={toggleSlow} aria-pressed={slow}>
-          <span aria-hidden="true">🐢</span>
-          <span>{t.result.slower}</span>
-        </button>
-      </div>
-      {noVoice && (
-        <p className="hint no-voice" role="status">
-          {t.result.noVoice}
-        </p>
-      )}
-    </>
+    <button className={`btn btn-listen ${active ? "on" : ""} ${small ? "btn-small" : ""}`} onClick={toggle} aria-pressed={active}>
+      <Icon name={active ? "stop" : "speaker"} />
+      <span>{active ? stopLabel : label}</span>
+    </button>
   );
 }
 
@@ -704,7 +674,7 @@ function AskQuestion({ analysis }: { analysis: Analysis }) {
 
   return (
     <section className="card card-ask">
-      <h2 className="card-title">{t.result.askTitle}</h2>
+      <h2 className="card-title">{t.result.askTitle} <SpeakCard /></h2>
       {history.length === 0 && (
         <div className="chips">
           {t.result.suggestions.map((s) => (

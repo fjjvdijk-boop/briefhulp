@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { SpeakCard } from "./Speech";
 import { Icon } from "./Icon";
 import { ReplySheetButton } from "./ReplyLetter";
 import { useI18n } from "../lib/i18n/context";
@@ -38,7 +39,8 @@ export function PayHelp({ analysis: a, letterText, qrCodes }: { analysis: Analys
       <section className="card card-scam" role="alert">
         <h2 className="card-title">
           <Icon name="alert" /> {g.payNowTitle}
-        </h2>
+<SpeakCard />
+          </h2>
         <p>{g.notSafe}</p>
       </section>
     );
@@ -49,7 +51,8 @@ export function PayHelp({ analysis: a, letterText, qrCodes }: { analysis: Analys
     <section className="card card-paynow">
       <h2 className="card-title">
         <Icon name="euro" /> {g.payNowTitle}
-      </h2>
+<SpeakCard />
+          </h2>
 
       {links.map((l) => (
         <div key={l.url} className={`pay-link status-${l.status}`}>
@@ -110,7 +113,8 @@ export function DisagreePlan({ analysis: a, typeKey }: { analysis: Analysis; typ
     <section className="card card-route">
       <h2 className="card-title">
         <Icon name="help" /> {g.disagreeTitle}
-      </h2>
+<SpeakCard />
+          </h2>
       <p>{lt.tx(route.intro)}</p>
       {lt.fallback && <p className="hint">{g.contentLang}</p>}
       <ol className="route-steps" lang={lt.lang}>
@@ -152,6 +156,9 @@ export function TopicCard({ topic, open }: { topic: Topic; open?: boolean }) {
         <span>{lt.tx(topic.title)}</span>
       </summary>
       <div className="topic-body" lang={lt.lang}>
+        <div className="topic-speak">
+          <SpeakCard label={lt.tx(topic.title)} />
+        </div>
         <p>{lt.tx(topic.summary)}</p>
         <ul className="bullets">
           {pts.map((p) => (
@@ -204,7 +211,8 @@ export function RightsList({ ids }: { ids: TopicId[] }) {
     <section className="card card-rights">
       <h2 className="card-title">
         <Icon name="info" /> {g.rightsTitle}
-      </h2>
+<SpeakCard />
+          </h2>
       <p className="hint">{g.rightsIntro}</p>
       {lt.fallback && <p className="hint">{g.contentLang}</p>}
       <div className="topics">

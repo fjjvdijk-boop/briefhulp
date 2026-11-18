@@ -300,20 +300,77 @@ export function chunkText(text: string, code: string, max = 170): string[] {
 }
 
 /* --------------------------------------------- Afspelen --------------------------------------------- */
+//
+// Eén speler voor de hele app. De tekst wordt in stukjes (zinnen) verdeeld en stukje voor stukje voorgelezen.
+// Zo kunnen we betrouwbaar pauzeren en verder gaan (de pauzeknop van browsers werkt op Android niet goed),
+// het tempo aanpassen zonder opnieuw te beginnen, en laten zien waar we zijn ("zin 3 van 12").
 
-type Listener = (id: number | null) => void;
-const listeners = new Set<Listener>();
-let currentId: number | null = null;
-let nextId = 1;
-// Houd een verwijzing vast: anders ruimt Chrome de uitspraak op en komt "onend" nooit.
-let keep: SpeechSynthesisUtterance | null = null;
-let watchdog: ReturnType<typeof setTimeout> | null = null;
-
-function setCurrent(id: number | null) {
-  currentId = id;
-  listeners.forEach((l) => l(id));
+export interface SpeechState {
+  /** Id van wat er nu voorgelezen wordt (null = niets). */
+  id: number | null;
+  /** Stukje dat nu (of na "verder") wordt voorgelezen, vanaf 0. */
+  index: number;
+  total: number;
+  paused: boolean;
+  /** Tempo: 1 = normaal. */
+  rate: number;
+  /** Korte naam van wat er voorgelezen wordt (voor de spelerbalk). */
+  label: string;
+  /** De tekst van het stukje dat nu wordt voorgelezen. */
+  current: string;
+  /** Taal van wat er voorgelezen wordt (voor lang= op de spelerbalk). */
+  lang: string;
+  /** De telefoon had geen (werkende) stem voor deze taal: melding tonen. */
+  noVoice: boolean;
 }
 
+export interface SpeakOptions {
+  /** App-taalcode, bijv. "nl", "ar", "uk". */
+  lang: string;
+  /** Snelheid: 1 = normaal. Weggelaten: het laatst gekozen tempo. */
+  rate?: number;
+  /** Naam voor de spelerbalk, bijv. "Wat moet u doen?". */
+  label?: string;
+  onEnd?: () => void;
+  /** De telefoon heeft geen (werkende) stem voor deze taal. */
+  onNoVoice?: () => void;
+}
+
+type Listener = (id: number | null) => void;
+type StateListener = (s: SpeechState) => void;
+const listeners = new Set<Listener>();
+const stateListeners = new Set<StateListener>();
+
+const SLOW = 0.78;
+const RATE_KEY = "briefhulp:speech-rate";
+function savedRate(): number {
+  try {
+    const v = Number(localStorage.getItem(RATE_KEY));
+    return v > 0.4 && v < 2 ? v : 1;
+  } catch {
+    return 1;
+  }
+}
+
+let state: SpeechState = { id: null, index: 0, total: 0, paused: false, rate: 1, label: "", current: "", lang: "nl", noVoice: false };
+let rateLoaded = false;
+let chunks: string[] = [];
+let opts: SpeakOptions = { lang: "nl" };
+let nextId = 1;
+/** Elke start, pauze of stop krijgt een nieuw nummer: een oude afspeelronde ziet dan dat hij moet stoppen. */
+let token = 0;
+// Houd een verwijzing vast: anders ruimt Chrome de uitspraak op en komt "onend" nooit.
+let keep: SpeechSynthesisUtterance | null = null;
+let unlocked = false;
+
+function emit(patch: Partial<SpeechState>) {
+  const prevId = state.id;
+  state = { ...state, ...patch };
+  stateListeners.forEach((l) => l(state));
+  if (patch.id !== undefined && patch.id !== prevId) listeners.forEach((l) => l(state.id));
+}
+
+/** Volgt alleen wélk voorlezen er loopt (id). */
 export function onSpeechChange(l: Listener) {
   listeners.add(l);
   return () => {
@@ -321,13 +378,25 @@ export function onSpeechChange(l: Listener) {
   };
 }
 
-export function stopSpeech() {
-  if (watchdog) clearTimeout(watchdog);
-  watchdog = null;
-  keep = null;
-  if (isNative()) void nativeTts().then(({ tts }) => tts.stop()).catch(() => {});
-  else if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
-  setCurrent(null);
+/** Volgt alles: voortgang, pauze, tempo (voor de spelerbalk). */
+export function onSpeechState(l: StateListener) {
+  stateListeners.add(l);
+  l(getSpeechState());
+  return () => {
+    stateListeners.delete(l);
+  };
+}
+
+export function getSpeechState(): SpeechState {
+  if (!rateLoaded && typeof window !== "undefined") {
+    rateLoaded = true;
+    state = { ...state, rate: savedRate() };
+  }
+  return state;
+}
+
+export function isSpeaking(id: number | null) {
+  return id !== null && state.id === id;
 }
 
 /** Kan dit toestel voorlezen? (In de app altijd: de stem van de telefoon zelf.) */
@@ -340,134 +409,263 @@ export function speechSupported() {
 // de app roept "then" aan op de plug-in). Daarom verpakt in een object.
 const nativeTts = () => import("@capacitor-community/text-to-speech").then((m) => ({ tts: m.TextToSpeech }));
 
-/**
- * In de app: de stem van de telefoon via een plug-in. De webweergave van Android kan zelf niet voorlezen,
- * en zo klinkt het op beide systemen hetzelfde als de rest van de telefoon.
- */
-async function runNative(id: number, parts: string[], opts: SpeakOptions) {
-  const { tts } = await nativeTts();
-  const bcp = speechLang(opts.lang);
-  const candidates = [bcp, ...(PREFERRED[opts.lang] ?? []), opts.lang];
-  let lang: string | null = null;
-  for (const c of candidates) {
-    try {
-      if ((await tts.isLanguageSupported({ lang: c })).supported) {
-        lang = c;
-        break;
-      }
-    } catch {
-      /* volgende proberen */
-    }
-  }
-  if (currentId !== id) return;
-  if (!lang) {
-    setCurrent(null);
-    opts.onNoVoice?.();
-    return;
-  }
-  const chunks = parts
-    .map((p) => prepareForSpeech(p, opts.lang))
-    .filter((p) => /[\p{L}\p{N}]/u.test(p))
-    .flatMap((p) => chunkText(p, lang!));
-  for (const text of chunks) {
-    if (currentId !== id) return;
-    try {
-      // De plug-in wacht tot de zin uitgesproken is: zo komen de zinnen netjes na elkaar
-      await tts.speak({ text, lang, rate: opts.rate ?? 1, pitch: 1, volume: 1, category: "playback" });
-    } catch {
-      if (currentId !== id) return; // gestopt
-    }
-  }
-  if (currentId === id) {
-    setCurrent(null);
-    opts.onEnd?.();
-  }
+function cancelEngine() {
+  keep = null;
+  if (isNative()) void nativeTts().then(({ tts }) => tts.stop()).catch(() => {});
+  else if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
 }
 
-export interface SpeakOptions {
-  /** App-taalcode, bijv. "nl", "ar", "uk". */
-  lang: string;
-  /** Snelheid: 1 = normaal. */
-  rate?: number;
-  onEnd?: () => void;
-  /** De telefoon heeft geen stem voor deze taal. */
-  onNoVoice?: () => void;
+/**
+ * iPhone/iPad (Safari) en sommige Android-browsers laten de stem pas praten als dat direct bij een tik begint.
+ * Wij wachten eerst op de stemmen; daarom zeggen we bij de allereerste tik meteen een stille spatie.
+ */
+function unlockWebSpeech() {
+  if (unlocked || isNative() || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  try {
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+    unlocked = true;
+  } catch {
+    /* niet erg */
+  }
 }
 
 /**
  * Leest de stukken tekst vloeiend achter elkaar voor en geeft meteen een id terug.
- * Een nieuwe start stopt automatisch het vorige voorlezen.
+ * Een nieuwe start stopt automatisch het vorige voorlezen. Roep dit aan vanuit een tik (knop).
  */
-export function speak(parts: string[], opts: SpeakOptions): number {
+export function speak(parts: string[], o: SpeakOptions): number {
   const id = nextId++;
   if (!speechSupported()) return id;
-  stopSpeech();
-  setCurrent(id); // knop meteen op "Stoppen", ook terwijl de stemmen nog laden
-  void (isNative() ? runNative(id, parts, opts) : run(id, parts, opts));
+  token++;
+  cancelEngine();
+  unlockWebSpeech();
+  getSpeechState();
+  const rate = o.rate ?? state.rate;
+  opts = o;
+  chunks = [];
+  emit({ id, index: 0, total: 0, paused: false, rate, label: o.label ?? "", current: "", lang: o.lang, noVoice: false });
+  void prepareAndPlay(id, parts, token);
   return id;
 }
 
-async function run(id: number, parts: string[], opts: SpeakOptions) {
-  const synth = window.speechSynthesis;
-  const voices = await loadVoices();
-  if (currentId !== id) return;
-  const voice = pickVoice(voices, opts.lang);
-  if (voices.length && !voice) {
-    setCurrent(null); // geen stem voor deze taal op dit toestel
-    opts.onNoVoice?.();
-    return;
+export function stopSpeech() {
+  token++;
+  cancelEngine();
+  if (state.id !== null || state.paused) emit({ id: null, paused: false, index: 0, total: 0, current: "" });
+}
+
+/** Pauzeren: we onthouden de zin en beginnen bij "verder" opnieuw met die zin. */
+export function pauseSpeech() {
+  if (state.id === null || state.paused) return;
+  token++;
+  cancelEngine();
+  emit({ paused: true });
+}
+
+export function resumeSpeech() {
+  if (state.id === null || !state.paused) return;
+  unlockWebSpeech();
+  emit({ paused: false });
+  void playFrom(state.id, state.index, ++token);
+}
+
+/** Tempo kiezen (1 = normaal). Wordt onthouden; tijdens het voorlezen gaat de huidige zin opnieuw in het nieuwe tempo. */
+export function setSpeechRate(rate: number) {
+  try {
+    localStorage.setItem(RATE_KEY, String(rate));
+  } catch {
+    /* geen opslag */
   }
-  const bcp = voice?.lang ?? speechLang(opts.lang);
-  const chunks = parts
+  emit({ rate });
+  if (state.id !== null && !state.paused) {
+    token++;
+    cancelEngine();
+    void playFrom(state.id, state.index, token);
+  }
+}
+
+export function toggleSlow() {
+  setSpeechRate(getSpeechState().rate < 0.95 ? 1 : SLOW);
+}
+
+/** Naar de vorige of volgende zin springen. */
+export function skipSpeech(delta: number) {
+  if (state.id === null || !chunks.length) return;
+  const index = Math.max(0, Math.min(chunks.length - 1, state.index + delta));
+  emit({ index, current: chunks[index] });
+  if (!state.paused) {
+    token++;
+    cancelEngine();
+    void playFrom(state.id, index, token);
+  }
+}
+
+// Scherm uit of naar een andere app (browser): pauzeren, zodat de knop niet blijft hangen op "Stoppen"
+// en u daarna gewoon verder kunt luisteren.
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && !isNative() && state.id !== null && !state.paused) pauseSpeech();
+  });
+}
+
+/* ---------- Voorbereiden: stem kiezen en tekst in stukjes ---------- */
+
+let webVoice: SpeechSynthesisVoice | null = null;
+let webLang = "";
+let nativeLang = "";
+
+async function prepareAndPlay(id: number, parts: string[], t: number) {
+  let bcp: string;
+  if (isNative()) {
+    const lang = await nativeLanguage(opts.lang);
+    if (t !== token) return;
+    if (!lang) return noVoice(t);
+    nativeLang = bcp = lang;
+  } else {
+    const voices = await loadVoices();
+    if (t !== token) return;
+    const voice = pickVoice(voices, opts.lang);
+    if (voices.length && !voice) return noVoice(t);
+    webVoice = voice;
+    webLang = bcp = voice?.lang ?? speechLang(opts.lang);
+  }
+  chunks = parts
     .map((p) => prepareForSpeech(p, opts.lang))
     .filter((p) => /[\p{L}\p{N}]/u.test(p))
     .flatMap((p) => chunkText(p, bcp));
-  // Online (Natural) stemmen praten van zichzelf al rustig; eenvoudige stemmen iets langzamer.
-  const rate = (opts.rate ?? 1) * (voice && GOOD.test(voice.name) ? 1 : 0.92);
-  let i = 0;
-  const next = () => {
-    if (watchdog) clearTimeout(watchdog);
-    if (currentId !== id) return;
-    if (i >= chunks.length) {
-      keep = null;
-      setCurrent(null);
-      opts.onEnd?.();
+  if (!chunks.length) return finish(t);
+  emit({ total: chunks.length, current: chunks[0] });
+  // Een klein moment na cancel(): anders slikt Safari/Chrome soms het eerste woord in
+  if (!isNative()) await new Promise((r) => setTimeout(r, 80));
+  if (t !== token) return;
+  await playFrom(id, 0, t);
+}
+
+function noVoice(t: number) {
+  if (t !== token) return;
+  const cb = opts.onNoVoice;
+  emit({ id: null, paused: false, total: 0, current: "", noVoice: true });
+  cb?.();
+}
+
+/** De melding "geen stem" wegklikken. */
+export function dismissNoVoice() {
+  emit({ noVoice: false });
+}
+
+function finish(t: number) {
+  if (t !== token) return;
+  keep = null;
+  const cb = opts.onEnd;
+  emit({ id: null, paused: false, index: 0, total: 0, current: "" });
+  cb?.();
+}
+
+/** Taal voor de plug-in in de app. De spraakdienst van Android start soms traag op: dan nog even opnieuw proberen. */
+async function nativeLanguage(code: string): Promise<string | null> {
+  const { tts } = await nativeTts();
+  const candidates = [...new Set([speechLang(code), ...(PREFERRED[code] ?? []), code])];
+  for (let attempt = 0; attempt < 3; attempt++) {
+    for (const c of candidates) {
+      try {
+        if ((await tts.isLanguageSupported({ lang: c })).supported) return c;
+      } catch {
+        /* dienst nog niet klaar: volgende poging */
+      }
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return null;
+}
+
+/* ---------- Afspelen vanaf een bepaalde zin ---------- */
+
+async function playFrom(id: number, from: number, t: number) {
+  let spokeSomething = false;
+  let failures = 0;
+  for (let i = from; i < chunks.length; i++) {
+    if (t !== token) return;
+    emit({ index: i, current: chunks[i] });
+    const result = isNative() ? await sayNative(chunks[i], t) : await sayWeb(chunks[i], t);
+    if (t !== token || result === "stopped") return;
+    if (result === "ok") {
+      spokeSomething = true;
+      failures = 0;
+      continue;
+    }
+    // Mislukt. Op het web: probeer een stem die op het toestel zelf staat (online stemmen werken niet zonder internet).
+    if (!isNative() && result === "error" && webVoice && !webVoice.localService) {
+      const local = pickVoice((await loadVoices()).filter((v) => v.localService), opts.lang);
+      if (t !== token) return;
+      webVoice = local;
+      if (local) webLang = local.lang;
+      i--; // dezelfde zin opnieuw
+      continue;
+    }
+    // Safari zonder tik: wachten op de gebruiker (pauze tonen), in plaats van stil te blijven hangen
+    if (result === "blocked") {
+      unlocked = false;
+      emit({ paused: true, index: i });
       return;
     }
-    const text = chunks[i++];
+    if (++failures >= 2 && !spokeSomething) return noVoice(t);
+  }
+  finish(t);
+  void id;
+}
+
+type SayResult = "ok" | "error" | "blocked" | "stopped";
+
+function sayWeb(text: string, t: number): Promise<SayResult> {
+  return new Promise((resolve) => {
+    const synth = window.speechSynthesis;
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = bcp;
-    if (voice) u.voice = voice;
-    u.rate = rate;
+    u.lang = webLang;
+    if (webVoice) u.voice = webVoice;
+    // Online (Natural) stemmen praten van zichzelf al rustig; eenvoudige stemmen iets langzamer.
+    u.rate = state.rate * (webVoice && GOOD.test(webVoice.name) ? 1 : 0.92);
     u.pitch = 1;
-    let finished = false;
-    const done = () => {
-      if (finished) return;
-      finished = true;
-      next();
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const end = (r: SayResult) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve(t !== token ? "stopped" : r);
     };
-    u.onend = done;
+    u.onend = () => end("ok");
     u.onerror = (e) => {
-      // "interrupted"/"canceled" = gestopt door de gebruiker of een nieuwe start
-      if (e.error === "interrupted" || e.error === "canceled") return;
-      done();
+      if (e.error === "interrupted" || e.error === "canceled") end("stopped");
+      else if (e.error === "not-allowed") end("blocked");
+      else end("error");
     };
     keep = u;
     // Vangnet: sommige browsers vergeten "onend". Ruim geschat: ± 12 tekens per seconde.
+    let started = false;
+    u.onstart = () => (started = true);
     const check = () => {
-      if (finished || currentId !== id) return;
-      if (!synth.speaking && !synth.pending) done();
-      else watchdog = setTimeout(check, 1500);
+      if (settled) return;
+      if (t !== token) return end("stopped");
+      if (!synth.speaking && !synth.pending) return end(started ? "ok" : "error");
+      timer = setTimeout(check, 1500);
     };
-    watchdog = setTimeout(check, 2500 + (text.length / 12 / rate) * 1000);
+    timer = setTimeout(check, 2500 + (text.length / 12 / u.rate) * 1000);
     synth.speak(u);
     // Chrome: na cancel() blijft de motor soms op pauze staan
     if (synth.paused) synth.resume();
-  };
-  // Een klein moment na cancel(): anders slikt Safari/Chrome soms het eerste woord in
-  setTimeout(next, 80);
+  });
 }
 
-export function isSpeaking(id: number | null) {
-  return id !== null && currentId === id;
+async function sayNative(text: string, t: number): Promise<SayResult> {
+  try {
+    const { tts } = await nativeTts();
+    if (t !== token) return "stopped";
+    // De plug-in wacht tot de zin uitgesproken is: zo komen de zinnen netjes na elkaar
+    await tts.speak({ text, lang: nativeLang, rate: state.rate, pitch: 1, volume: 1, category: "playback" });
+    return t !== token ? "stopped" : "ok";
+  } catch {
+    return t !== token ? "stopped" : "error";
+  }
 }

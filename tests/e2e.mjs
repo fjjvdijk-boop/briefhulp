@@ -110,10 +110,152 @@ try {
     await p.waitForSelector(".summary-card");
     await p.click(".btn-listen");
     await p.waitForFunction(() => document.querySelector(".btn-listen")?.getAttribute("aria-pressed") === "false" && window.__spoken.length > 0, null, { timeout: 15000 }).catch(() => {});
-    const r = await p.evaluate(() => ({ s: window.__spoken, overlap: !!window.__overlap }));
+    // De allereerste "zin" is een stille spatie: die maakt voorlezen op iPhone mogelijk (zie lib/client/speech.ts)
+    const r = await p.evaluate(() => ({ s: window.__spoken.filter((x) => x.text.trim()), overlap: !!window.__overlap }));
     const good = r.s.length >= 5 && !r.overlap && r.s.every((x) => x.lang === bcp && x.text.length <= 180) && !r.s.some((x) => /€|\(|\)/.test(x.text));
     if (good) ok++;
     else fails.push(`✗ voorlezen ${lang}: ${r.s.length} stukken, overlap=${r.overlap}, talen=${[...new Set(r.s.map((x) => x.lang))]}`);
+    await ctx.close();
+  }
+
+  // 4. Spelerbalk en voorleesknop per kaart: pauze/verder, langzamer, vorige zin, stoppen, en de iPhone-eis
+  //    (het eerste geluid moet direct bij de tik beginnen)
+  {
+    const MOCK2 = () => {
+      const voices = [{ name: "Google nl", lang: "nl-NL", default: true, localService: false, voiceURI: "nl" }];
+      window.__spoken = [];
+      // Zoals een echte browser: een wachtrij, één tegelijk, en cancel() onderbreekt alles
+      let cur = null;
+      let timer = null;
+      const queue = [];
+      const startNext = () => {
+        if (cur || !queue.length) return;
+        cur = queue.shift();
+        const u = cur;
+        timer = setTimeout(() => { cur = null; u.onend?.(); startNext(); }, 150 + u.text.length * 4);
+      };
+      document.addEventListener("click", () => { window.__inClick = true; setTimeout(() => (window.__inClick = false), 0); }, true);
+      Object.defineProperty(window, "speechSynthesis", {
+        value: {
+          get speaking() { return !!cur; }, get pending() { return queue.length > 0; }, paused: false,
+          getVoices: () => voices, addEventListener() {}, removeEventListener() {}, resume() {}, pause() {},
+          cancel() {
+            if (timer) clearTimeout(timer);
+            const all = [cur, ...queue.splice(0)].filter(Boolean);
+            cur = null;
+            all.forEach((u) => u.onerror?.({ error: "interrupted" }));
+          },
+          speak(u) {
+            window.__spoken.push({ text: u.text, rate: u.rate, inClick: !!window.__inClick });
+            queue.push(u);
+            startNext();
+          },
+        },
+      });
+      window.SpeechSynthesisUtterance = function (text) { this.text = text; this.volume = 1; };
+    };
+    const ctx = await b.newContext({ viewport: { width: 360, height: 760 }, reducedMotion: "reduce" });
+    await ctx.addInitScript(MOCK2);
+    const p = await ctx.newPage();
+    await p.goto(BASE);
+    await p.evaluate((v) => localStorage.setItem("briefhulp:prefs:v2", v), prefs("nl"));
+    await p.reload();
+    await p.click(".example-chip >> nth=0");
+    await p.waitForSelector(".summary-card");
+    const ok2 = (name, cond, extra = "") => (cond ? ok++ : fails.push(`✗ spelerbalk: ${name} ${extra}`));
+    // Voorlezen via de knop op de kaart "Wat moet u doen?"
+    await p.click(".card-actions .speak-card");
+    await p.waitForSelector(".speech-bar", { timeout: 5000 }).catch(() => {});
+    ok2("balk verschijnt", !!(await p.$(".speech-bar")));
+    await p.waitForTimeout(500);
+    let sp = await p.evaluate(() => window.__spoken);
+    ok2("eerste geluid direct bij de tik (iPhone)", sp.length > 0 && sp[0].inClick, JSON.stringify(sp[0]));
+    const real = sp.filter((x) => x.text.trim());
+    ok2("leest de kaart voor (zonder knopteksten)", real.length > 0 && !/Kopieer|Schrijf deze brief/.test(real.map((x) => x.text).join(" ")), real[0]?.text);
+    // Pauze: er wordt niets meer gezegd
+    await p.click(".speech-main");
+    const nPause = (await p.evaluate(() => window.__spoken.length));
+    const lastBefore = (await p.evaluate(() => window.__spoken.filter((x) => x.text.trim()).at(-1)?.text));
+    await p.waitForTimeout(900);
+    ok2("pauze: stil", (await p.evaluate(() => window.__spoken.length)) === nPause);
+    ok2("pauze: knop wordt 'Verder'", (await p.getAttribute(".speech-main", "aria-label")) === "Verder");
+    // Verder: dezelfde zin opnieuw
+    await p.click(".speech-main");
+    await p.waitForTimeout(250);
+    const afterResume = await p.evaluate(() => window.__spoken.filter((x) => x.text.trim()).at(-1)?.text);
+    ok2("verder: zelfde zin opnieuw", afterResume === lastBefore, `${lastBefore} → ${afterResume}`);
+    // Langzamer: tempo omlaag, en onthouden
+    const rateBefore = await p.evaluate(() => window.__spoken.at(-1).rate);
+    await p.click(".speech-controls .speech-btn:nth-child(3)");
+    await p.waitForTimeout(250);
+    const rateAfter = await p.evaluate(() => window.__spoken.at(-1).rate);
+    ok2("langzamer", rateAfter < rateBefore, `${rateBefore} → ${rateAfter}`);
+    ok2("tempo onthouden", (await p.evaluate(() => localStorage.getItem("briefhulp:speech-rate"))) === "0.78");
+    // Voortgang zichtbaar
+    ok2("voortgang 'Zin x van y'", /Zin \d+ van \d+/.test((await p.textContent(".speech-progress")) || ""));
+    // Stoppen: balk weg, niets meer
+    await p.click('.speech-btn[aria-label="Stop met voorlezen"]');
+    await p.waitForTimeout(300);
+    const nStop = await p.evaluate(() => window.__spoken.length);
+    await p.waitForTimeout(700);
+    ok2("stoppen: balk weg", !(await p.$(".speech-bar")));
+    ok2("stoppen: stil", (await p.evaluate(() => window.__spoken.length)) === nStop);
+    // Rechten-onderwerp voorlezen in een andere taal (Turks) met de taal van de tekst
+    await p.click("#tab-help");
+    await p.$$eval("details.topic", (d) => d.forEach((x) => (x.open = true)));
+    await p.click(".topic .speak-card >> nth=0");
+    await p.waitForTimeout(400);
+    ok2("onderwerp uit 'Uw rechten' wordt voorgelezen", !!(await p.$(".speech-bar")));
+    await p.click('.speech-btn[aria-label="Stop met voorlezen"]').catch(() => {});
+    // axe op de spelerbalk zelf
+    await p.click(".card-help .speak-card").catch(() => {});
+    await p.waitForSelector(".speech-bar");
+    await check(p, "spelerbalk (axe, 360 px)");
+    // Scherm uit / andere app: pauzeren in plaats van blijven hangen
+    await p.evaluate(() => {
+      Object.defineProperty(document, "hidden", { value: true, configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await p.waitForTimeout(200);
+    ok2("scherm uit: pauze", (await p.getAttribute(".speech-main", "aria-label")) === "Verder");
+    await ctx.close();
+  }
+
+  // 5. Online stem werkt niet (geen internet): overstappen op een stem op het toestel; werkt er geen enkele: melding
+  for (const scenario of ["fallback", "none"]) {
+    const ctx = await b.newContext({ viewport: { width: 390, height: 800 }, reducedMotion: "reduce" });
+    await ctx.addInitScript((sc) => {
+      const voices = [{ name: "Google Nederlands", lang: "nl-NL", default: true, localService: false, voiceURI: "g" }];
+      if (sc === "fallback") voices.push({ name: "Xander", lang: "nl-NL", default: false, localService: true, voiceURI: "x" });
+      window.__spoken = [];
+      Object.defineProperty(window, "speechSynthesis", {
+        value: {
+          speaking: false, pending: false, paused: false,
+          getVoices: () => voices, addEventListener() {}, removeEventListener() {}, resume() {}, pause() {}, cancel() {},
+          speak(u) {
+            if (!u.text.trim()) return setTimeout(() => u.onend?.(), 5);
+            if (!u.voice || !u.voice.localService) return setTimeout(() => u.onerror?.({ error: "network" }), 20);
+            window.__spoken.push({ text: u.text, voice: u.voice.name });
+            setTimeout(() => u.onend?.(), 30);
+          },
+        },
+      });
+      window.SpeechSynthesisUtterance = function (text) { this.text = text; };
+    }, scenario);
+    const p = await ctx.newPage();
+    await p.goto(BASE);
+    await p.evaluate((v) => localStorage.setItem("briefhulp:prefs:v2", v), prefs("nl"));
+    await p.reload();
+    await p.click(".example-chip >> nth=0");
+    await p.waitForSelector(".summary-card");
+    await p.click(".btn-listen");
+    await p.waitForTimeout(2500);
+    const r = await p.evaluate(() => ({ s: window.__spoken, msg: document.querySelector(".speech-bar-msg")?.textContent ?? "" }));
+    if (scenario === "fallback") {
+      if (r.s.length >= 5 && r.s.every((x) => x.voice === "Xander")) ok++;
+      else fails.push(`✗ stem op het toestel als de online stem faalt: ${r.s.length} zinnen`);
+    } else if (/geen voorleesstem/i.test(r.msg)) ok++;
+    else fails.push(`✗ geen werkende stem: geen melding (${r.msg})`);
     await ctx.close();
   }
 } finally {
